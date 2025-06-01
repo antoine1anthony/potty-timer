@@ -30,7 +30,7 @@ describe('App', () => {
       width: 375,
       height: 667,
     });
-    (Device.isDevice as any) = true;
+    (Device as any).isDevice = true;
     (Notifications.requestPermissionsAsync as jest.Mock).mockResolvedValue({
       status: 'granted',
     });
@@ -40,6 +40,9 @@ describe('App', () => {
     (
       Notifications.cancelAllScheduledNotificationsAsync as jest.Mock
     ).mockResolvedValue(undefined);
+    (Notifications.getExpoPushTokenAsync as jest.Mock).mockResolvedValue({
+      data: 'ExponentPushToken[mock-token]',
+    });
     (Math.random as jest.Mock).mockReturnValue(0.5);
   });
 
@@ -56,6 +59,7 @@ describe('App', () => {
       expect(
         getByText('Tap anywhere for a potty break animation!'),
       ).toBeTruthy();
+      expect(getByText('🔧 DEV MODE')).toBeTruthy(); // Environment indicator
     });
 
     it('registers notification permissions on mount', async () => {
@@ -74,12 +78,10 @@ describe('App', () => {
     });
 
     it('handles device not being physical device', async () => {
-      // Mock Device.isDevice before rendering
-      const originalIsDevice = Device.isDevice;
-      Object.defineProperty(Device, 'isDevice', {
-        value: false,
-        writable: true,
-      });
+      // Mock Device.isDevice to false for this test
+      const mockDevice = require('expo-device');
+      const originalIsDevice = mockDevice.isDevice;
+      mockDevice.isDevice = false;
 
       render(<App />);
 
@@ -90,10 +92,7 @@ describe('App', () => {
       });
 
       // Restore original value
-      Object.defineProperty(Device, 'isDevice', {
-        value: originalIsDevice,
-        writable: true,
-      });
+      mockDevice.isDevice = originalIsDevice;
     });
 
     it('handles notification permission denied', async () => {
@@ -188,9 +187,10 @@ describe('App', () => {
       await waitFor(() => {
         // In portrait mode (375x667), text should be vertical
         expect(getByText('Time')).toBeTruthy();
-        expect(getByText('for')).toBeTruthy();
-        expect(getByText('Potty')).toBeTruthy();
-        expect(getByText('Break!!')).toBeTruthy();
+        expect(getByText('to')).toBeTruthy();
+        expect(getByText('use')).toBeTruthy();
+        expect(getByText('the')).toBeTruthy();
+        expect(getByText('Potty!!')).toBeTruthy();
       });
 
       // Tap to dismiss
@@ -238,9 +238,10 @@ describe('App', () => {
       await waitFor(() => {
         // In portrait mode (375x667), text should be vertical
         expect(getByText('Time')).toBeTruthy();
-        expect(getByText('for')).toBeTruthy();
-        expect(getByText('Potty')).toBeTruthy();
-        expect(getByText('Break!!')).toBeTruthy();
+        expect(getByText('to')).toBeTruthy();
+        expect(getByText('use')).toBeTruthy();
+        expect(getByText('the')).toBeTruthy();
+        expect(getByText('Potty!!')).toBeTruthy();
         expect(getByText('Tap anywhere to dismiss!')).toBeTruthy();
         expect(Haptics.notificationAsync).toHaveBeenCalledWith(
           Haptics.NotificationFeedbackType.Warning,
@@ -260,9 +261,10 @@ describe('App', () => {
       await waitFor(() => {
         // In portrait mode (375x667), text should be vertical
         expect(getByText('Time')).toBeTruthy();
-        expect(getByText('for')).toBeTruthy();
-        expect(getByText('Potty')).toBeTruthy();
-        expect(getByText('Break!!')).toBeTruthy();
+        expect(getByText('to')).toBeTruthy();
+        expect(getByText('use')).toBeTruthy();
+        expect(getByText('the')).toBeTruthy();
+        expect(getByText('Potty!!')).toBeTruthy();
         expect(Haptics.notificationAsync).toHaveBeenCalledWith(
           Haptics.NotificationFeedbackType.Warning,
         );

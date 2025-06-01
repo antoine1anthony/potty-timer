@@ -7,6 +7,7 @@
  * - Allows user to manually trigger animation via tap
  * - Enhanced with haptic feedback for better UX
  * - Features dramatic "Potty Break Alert" mode with cycling colors and multiple emojis
+ * - Environment-aware notifications: local in dev, push in production
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -32,6 +33,13 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import * as Haptics from 'expo-haptics';
 
+// Environment configuration
+const ENV = process.env.EXPO_PUBLIC_ENV || 'development';
+const isDevelopment = ENV === 'development';
+const isProduction = ENV === 'production';
+
+console.log(`🚽 Potty Timer running in ${ENV} mode`);
+
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -43,15 +51,16 @@ Notifications.setNotificationHandler({
 });
 
 /**
- * Schedules a repeating local notification every hour.
+ * Schedules a repeating local notification every hour (development mode).
  */
-const scheduleHourlyNotification = async () => {
+const scheduleLocalNotification = async () => {
   try {
     await Notifications.cancelAllScheduledNotificationsAsync();
+    console.log('📱 Scheduling local notification (development mode)');
     await Notifications.scheduleNotificationAsync({
       content: {
         title: '🚽 Potty Time!',
-        body: "It's time to take a potty break!",
+        body: "It's time to take a potty break! (Local notification)",
         sound: 'default',
       },
       trigger: {
@@ -61,18 +70,54 @@ const scheduleHourlyNotification = async () => {
       },
     });
   } catch (error) {
-    console.error('Error scheduling notification:', error);
+    console.error('Error scheduling local notification:', error);
   }
 };
 
 /**
- * Requests notification permissions and, if granted, schedules notifications.
+ * Sets up push notification token and schedules notifications (production mode).
+ */
+const setupPushNotifications = async () => {
+  try {
+    await Notifications.cancelAllScheduledNotificationsAsync();
+    console.log('🌐 Setting up push notifications (production mode)');
+
+    // Get push notification token
+    const token = await Notifications.getExpoPushTokenAsync({
+      projectId: '38c1b2a8-7e31-4365-9996-b982ad430a7c',
+    });
+    console.log('Push token:', token.data);
+
+    // For demonstration, we'll still schedule a local notification
+    // In a real app, you'd send this token to your backend server
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '🚽 Potty Time!',
+        body: "It's time to take a potty break! (Push notification ready)",
+        sound: 'default',
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: 3600, // 1 hour
+        repeats: true,
+      },
+    });
+  } catch (error) {
+    console.error('Error setting up push notifications:', error);
+    // Fallback to local notifications
+    await scheduleLocalNotification();
+  }
+};
+
+/**
+ * Requests notification permissions and sets up appropriate notification type.
  */
 const registerAndScheduleNotifications = async () => {
   if (!Device.isDevice) {
     alert('Push notifications require a physical device.');
     return;
   }
+
   const { status } = await Notifications.requestPermissionsAsync();
   if (status !== 'granted') {
     alert('Permission for notifications not granted!');
@@ -80,7 +125,14 @@ const registerAndScheduleNotifications = async () => {
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     return;
   }
-  await scheduleHourlyNotification();
+
+  // Choose notification strategy based on environment
+  if (isProduction) {
+    await setupPushNotifications();
+  } else {
+    await scheduleLocalNotification();
+  }
+
   // Haptic feedback for successful setup
   await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 };
@@ -138,7 +190,12 @@ function PottyTimerApp() {
         appState.current.match(/inactive|background/) &&
         nextAppState === 'active'
       ) {
-        scheduleHourlyNotification();
+        // Re-schedule notifications based on environment
+        if (isProduction) {
+          setupPushNotifications();
+        } else {
+          scheduleLocalNotification();
+        }
       }
       appState.current = nextAppState;
     });
@@ -521,6 +578,11 @@ function PottyTimerApp() {
                   [DEBUG]
                 </Text>
               )}
+
+              {/* Environment indicator */}
+              <Text style={[styles.envText, { fontSize: textFontSize * 0.4 }]}>
+                {isDevelopment ? '🔧 DEV MODE' : '🚀 PROD MODE'}
+              </Text>
             </>
           )}
         </View>
@@ -606,6 +668,12 @@ const styles = StyleSheet.create({
     color: 'red',
     textAlign: 'center',
     marginTop: 5,
+  },
+  envText: {
+    color: '#007AFF',
+    textAlign: 'center',
+    marginTop: 5,
+    fontWeight: '500',
   },
   modalOverlay: {
     flex: 1,

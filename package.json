@@ -4,6 +4,8 @@
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
+    "start:dev": "expo start",
+    "start:prod": "NODE_ENV=production expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
@@ -12,7 +14,9 @@
     "test:coverage": "jest --coverage",
     "test:app": "jest App.test.tsx",
     "test:emoji": "jest AnimatedEmoji.test.tsx",
-    "test:ci": "jest --coverage --coverageDirectory='coverage' --coverageReporters=json-summary,lcov,text"
+    "test:ci": "jest --coverage --coverageDirectory='coverage' --coverageReporters=json-summary,lcov,text",
+    "deploy:web": "npx expo export --platform web && npx eas-cli deploy",
+    "deploy:web:prod": "NODE_ENV=production npx expo export --platform web && npx eas-cli deploy --prod"
   },
   "dependencies": {
     "@expo/metro-runtime": "~5.0.4",

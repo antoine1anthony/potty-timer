@@ -2,6 +2,9 @@
 global.__DEV__ = true;
 global.alert = jest.fn();
 
+// Mock environment variables for testing
+process.env.EXPO_PUBLIC_ENV = 'development';
+
 // Following the user's request to use real libraries as much as possible
 // We'll use the minimum mocks needed to make tests work without loading native modules
 
@@ -175,9 +178,12 @@ jest.mock('expo-haptics', () => ({
   },
 }));
 
-jest.mock('expo-device', () => ({
-  isDevice: true,
-}));
+jest.mock('expo-device', () => {
+  const mockDevice = {
+    isDevice: true,
+  };
+  return mockDevice;
+});
 
 jest.mock('expo-notifications', () => ({
   setNotificationHandler: jest.fn(),
@@ -186,6 +192,11 @@ jest.mock('expo-notifications', () => ({
   ),
   scheduleNotificationAsync: jest.fn(() => Promise.resolve('notification-id')),
   cancelAllScheduledNotificationsAsync: jest.fn(() => Promise.resolve()),
+  getExpoPushTokenAsync: jest.fn(() =>
+    Promise.resolve({
+      data: 'ExponentPushToken[mock-token]',
+    }),
+  ),
   SchedulableTriggerInputTypes: {
     TIME_INTERVAL: 'timeInterval',
   },
