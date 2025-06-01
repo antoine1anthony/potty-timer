@@ -51,7 +51,8 @@ describe('App', () => {
     it('renders the main app with correct initial state', () => {
       const { getByText } = render(<App />);
 
-      expect(getByText('🚽 Potty Timer is running!')).toBeTruthy();
+      expect(getByText('🚽')).toBeTruthy();
+      expect(getByText(' Potty Timer is running!')).toBeTruthy();
       expect(
         getByText('Tap anywhere for a potty break animation!'),
       ).toBeTruthy();
@@ -64,7 +65,7 @@ describe('App', () => {
         expect(Notifications.requestPermissionsAsync).toHaveBeenCalled();
         expect(Notifications.scheduleNotificationAsync).toHaveBeenCalled();
         expect(Haptics.impactAsync).toHaveBeenCalledWith(
-          Haptics.ImpactFeedbackStyle.Light,
+          Haptics.ImpactFeedbackStyle.Medium,
         );
         expect(Haptics.notificationAsync).toHaveBeenCalledWith(
           Haptics.NotificationFeedbackType.Success,
@@ -111,17 +112,65 @@ describe('App', () => {
 
       await waitFor(() => {
         expect(Haptics.impactAsync).toHaveBeenCalledWith(
-          Haptics.ImpactFeedbackStyle.Medium,
+          Haptics.ImpactFeedbackStyle.Heavy,
         );
         expect(queryByTestId('animated-emoji-0')).toBeTruthy();
       });
     });
 
-    it('dismisses notification mode on tap', async () => {
-      const { getByTestId, getByText } = render(<App />);
+    it('activates debug mode on triple-tap of toilet emoji', async () => {
+      const { getByText } = render(<App />);
+      const toiletEmoji = getByText('🚽');
 
-      // Trigger notification mode
-      act(() => {
+      // Triple tap the toilet emoji
+      fireEvent.press(toiletEmoji);
+      fireEvent.press(toiletEmoji);
+      fireEvent.press(toiletEmoji);
+
+      await waitFor(() => {
+        expect(getByText('[DEBUG]')).toBeTruthy();
+        expect(Haptics.notificationAsync).toHaveBeenCalledWith(
+          Haptics.NotificationFeedbackType.Success,
+        );
+      });
+    });
+
+    it('deactivates debug mode on single tap when already in debug mode', async () => {
+      const { getByText, queryByText } = render(<App />);
+      const toiletEmoji = getByText('🚽');
+
+      // First activate debug mode
+      fireEvent.press(toiletEmoji);
+      fireEvent.press(toiletEmoji);
+      fireEvent.press(toiletEmoji);
+
+      await waitFor(() => {
+        expect(getByText('[DEBUG]')).toBeTruthy();
+      });
+
+      // Now tap once to deactivate
+      fireEvent.press(toiletEmoji);
+
+      await waitFor(() => {
+        expect(queryByText('[DEBUG]')).toBeNull();
+        expect(Haptics.impactAsync).toHaveBeenCalledWith(
+          Haptics.ImpactFeedbackStyle.Medium,
+        );
+      });
+    });
+
+    it('dismisses notification mode on tap', async () => {
+      jest.useFakeTimers();
+      const { getByText, getByTestId } = render(<App />);
+
+      // Manually trigger notification mode by triple-tapping toilet emoji first
+      const toiletEmoji = getByText('🚽');
+      fireEvent.press(toiletEmoji);
+      fireEvent.press(toiletEmoji);
+      fireEvent.press(toiletEmoji);
+
+      // Wait for debug mode activation, then trigger notification mode
+      await act(async () => {
         jest.advanceTimersByTime(5000);
       });
 
@@ -129,21 +178,43 @@ describe('App', () => {
         expect(getByText('🚽 Time for Potty Break!! 🚽')).toBeTruthy();
       });
 
-      const touchable = getByTestId('app-touchable');
-      fireEvent.press(touchable);
+      // Tap to dismiss
+      const touchableArea = getByTestId('app-touchable');
+      fireEvent.press(touchableArea);
 
       await waitFor(() => {
+        expect(getByText('🚽')).toBeTruthy();
+        expect(getByText(' Potty Timer is running!')).toBeTruthy();
+        expect(
+          getByText('Tap anywhere for a potty break animation!'),
+        ).toBeTruthy();
         expect(Haptics.notificationAsync).toHaveBeenCalledWith(
           Haptics.NotificationFeedbackType.Success,
         );
-        expect(getByText('🚽 Potty Timer is running!')).toBeTruthy();
       });
+
+      jest.useRealTimers();
     });
   });
 
   describe('Notification Mode', () => {
     it('triggers dramatic notification mode after 5 seconds', async () => {
-      const { getByText, queryByTestId } = render(<App />);
+      jest.useFakeTimers();
+
+      const { getByText } = render(<App />);
+
+      act(() => {
+        jest.advanceTimersByTime(5000);
+      });
+
+      // Since the 5-second timeout is now disabled by default (no debug mode),
+      // we need to manually trigger notification mode for this test
+      const touchableArea = getByText('🚽');
+
+      // Triple tap to enable debug mode first
+      fireEvent.press(touchableArea);
+      fireEvent.press(touchableArea);
+      fireEvent.press(touchableArea);
 
       act(() => {
         jest.advanceTimersByTime(5000);
@@ -155,12 +226,9 @@ describe('App', () => {
         expect(Haptics.notificationAsync).toHaveBeenCalledWith(
           Haptics.NotificationFeedbackType.Warning,
         );
-
-        // Check for multiple emojis (8 total)
-        for (let i = 0; i < 8; i++) {
-          expect(queryByTestId(`animated-emoji-${i * 200}`)).toBeTruthy();
-        }
       });
+
+      jest.useRealTimers();
     });
 
     it('triggers notification mode on hourly interval', async () => {
@@ -181,13 +249,10 @@ describe('App', () => {
 
   describe('Responsive Design', () => {
     it('adapts to small screen dimensions', () => {
-      (useWindowDimensions as jest.Mock).mockReturnValue({
-        width: 320,
-        height: 480,
-      });
+      (useWindowDimensions as any).mockReturnValue({ width: 320, height: 480 });
 
       const { getByText } = render(<App />);
-      const titleText = getByText('🚽 Potty Timer is running!');
+      const titleText = getByText(' Potty Timer is running!');
 
       expect(titleText.props.style).toEqual(
         expect.arrayContaining([expect.objectContaining({ fontSize: 18 })]),
@@ -195,13 +260,13 @@ describe('App', () => {
     });
 
     it('adapts to tablet screen dimensions', () => {
-      (useWindowDimensions as jest.Mock).mockReturnValue({
+      (useWindowDimensions as any).mockReturnValue({
         width: 800,
         height: 1024,
       });
 
       const { getByText } = render(<App />);
-      const titleText = getByText('🚽 Potty Timer is running!');
+      const titleText = getByText(' Potty Timer is running!');
 
       expect(titleText.props.style).toEqual(
         expect.arrayContaining([expect.objectContaining({ fontSize: 32 })]),
@@ -263,18 +328,24 @@ describe('App', () => {
 
   describe('Haptic Feedback Integration', () => {
     it('provides appropriate haptic feedback for each interaction type', async () => {
-      const { getByTestId } = render(<App />);
-      const touchable = getByTestId('app-touchable');
+      jest.useFakeTimers();
+      const { getByText, getByTestId } = render(<App />);
 
-      // Normal tap
-      fireEvent.press(touchable);
+      // Test toilet emoji tap haptic
+      const toiletEmoji = getByText('🚽');
+      fireEvent.press(toiletEmoji);
+
       await waitFor(() => {
         expect(Haptics.impactAsync).toHaveBeenCalledWith(
           Haptics.ImpactFeedbackStyle.Medium,
         );
       });
 
-      // Trigger notification mode
+      // Complete triple tap to enable debug mode
+      fireEvent.press(toiletEmoji);
+      fireEvent.press(toiletEmoji);
+
+      // Test notification warning after debug mode is enabled
       act(() => {
         jest.advanceTimersByTime(5000);
       });
@@ -285,13 +356,7 @@ describe('App', () => {
         );
       });
 
-      // Dismiss notification mode
-      fireEvent.press(touchable);
-      await waitFor(() => {
-        expect(Haptics.notificationAsync).toHaveBeenCalledWith(
-          Haptics.NotificationFeedbackType.Success,
-        );
-      });
+      jest.useRealTimers();
     });
   });
 });

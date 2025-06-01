@@ -190,3 +190,25 @@ jest.mock('react-native-safe-area-context', () => {
 const mockMath = Object.create(global.Math);
 mockMath.random = jest.fn(() => 0.5);
 global.Math = mockMath;
+
+// Mock our CountdownTimer component
+jest.mock('./CountdownTimer', () => {
+  const React = require('react');
+  const { Text } = require('react-native');
+
+  return function MockCountdownTimer({ timeInSeconds, style }) {
+    const formatTime = (seconds) => {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins.toString().padStart(2, '0')}:${secs
+        .toString()
+        .padStart(2, '0')}`;
+    };
+
+    return React.createElement(
+      'Text',
+      { 'data-testid': 'countdown-timer', style },
+      formatTime(timeInSeconds),
+    );
+  };
+});
