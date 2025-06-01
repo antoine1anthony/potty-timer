@@ -19,6 +19,7 @@
     "@testing-library/jest-native": "^5.4.3",
     "@testing-library/react-native": "^13.2.0",
     "expo": "^53.0.9",
+    "expo-audio": "~0.4.5",
     "expo-constants": "~17.1.6",
     "expo-device": "~7.1.4",
     "expo-haptics": "~14.1.4",
@@ -31,8 +32,7 @@
     "react-native": "0.79.2",
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "5.4.0",
-    "react-native-web": "^0.20.0",
-    "expo-av": "~15.1.4"
+    "react-native-web": "^0.20.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

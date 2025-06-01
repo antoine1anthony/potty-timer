@@ -25,7 +25,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
-import { Audio } from 'expo-av';
+import { useAudioPlayer } from 'expo-audio';
 import AnimatedEmoji from './AnimatedEmoji';
 import CountdownTimer from './CountdownTimer';
 import * as Notifications from 'expo-notifications';
@@ -98,10 +98,13 @@ function PottyTimerApp() {
   const [showTimerSelector, setShowTimerSelector] = useState(false);
   const [customMinutes, setCustomMinutes] = useState('60');
   const [customSeconds, setCustomSeconds] = useState('00');
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
   const { width, height } = useWindowDimensions();
   const appState = useRef<AppStateStatus>(AppState.currentState);
   const colorCycleRef = useRef<any>(null); // Using any to avoid TypeScript timeout issues
+
+  // Initialize audio player
+  const audioSource = require('./assets/audio/watermarked_Lunareh_Friday_Night_Feels_background_vocals_3_44.mp3');
+  const player = useAudioPlayer(audioSource);
 
   // Determine if device is in landscape mode
   const isLandscape = width > height;
@@ -125,43 +128,9 @@ function PottyTimerApp() {
     { label: '2 Hours', value: 7200 },
   ];
 
-  // Audio functions
-  const loadAndPlayAudio = async () => {
-    try {
-      const { sound: newSound } = await Audio.Sound.createAsync(
-        require('./assets/audio/watermarked_Lunareh_Friday_Night_Feels_background_vocals_3_44.mp3'),
-        { shouldPlay: true, isLooping: true, volume: 0.5 },
-      );
-      setSound(newSound);
-    } catch (error) {
-      console.error('Error loading audio:', error);
-    }
-  };
-
-  const stopAndUnloadAudio = async () => {
-    if (sound) {
-      try {
-        await sound.stopAsync();
-        await sound.unloadAsync();
-        setSound(null);
-      } catch (error) {
-        console.error('Error stopping audio:', error);
-      }
-    }
-  };
-
   useEffect(() => {
     // Register and schedule notifications on mount
     registerAndScheduleNotifications();
-
-    // Setup audio
-    Audio.setAudioModeAsync({
-      allowsRecordingIOS: false,
-      staysActiveInBackground: false,
-      playsInSilentModeIOS: true,
-      shouldDuckAndroid: true,
-      playThroughEarpieceAndroid: false,
-    });
 
     // AppState listener: re-schedule notification if returning to foreground
     const subscription = AppState.addEventListener('change', (nextAppState) => {
@@ -177,7 +146,6 @@ function PottyTimerApp() {
     // Cleanup function
     return () => {
       subscription.remove();
-      stopAndUnloadAudio();
     };
   }, []);
 
@@ -208,7 +176,10 @@ function PottyTimerApp() {
   // Cycle through background colors in notification mode
   useEffect(() => {
     if (isNotificationMode) {
-      // Audio is now started directly in triggerNotificationMode() for immediate playback
+      // Start audio when notification mode begins
+      player.loop = true;
+      player.volume = 0.5;
+      player.play();
 
       let colorIndex = 0;
       colorCycleRef.current = setInterval(() => {
@@ -219,7 +190,7 @@ function PottyTimerApp() {
       }, 800); // Change color every 800ms
     } else {
       // Stop audio when exiting notification mode
-      stopAndUnloadAudio();
+      player.pause();
 
       if (colorCycleRef.current) {
         clearInterval(colorCycleRef.current);
@@ -233,7 +204,7 @@ function PottyTimerApp() {
         clearInterval(colorCycleRef.current);
       }
     };
-  }, [isNotificationMode]);
+  }, [isNotificationMode, player]);
 
   // Add countdown reset logic
   useEffect(() => {
@@ -260,8 +231,6 @@ function PottyTimerApp() {
   // Triggers dramatic notification mode
   function triggerNotificationMode() {
     setIsNotificationMode(true);
-    // Start audio immediately when notification mode is triggered
-    loadAndPlayAudio();
     // Strong haptic feedback for notification
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
   }

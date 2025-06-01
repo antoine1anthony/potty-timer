@@ -191,22 +191,20 @@ jest.mock('expo-notifications', () => ({
   },
 }));
 
-// Mock expo-av for audio functionality
-jest.mock('expo-av', () => ({
+// Mock expo-audio for audio functionality
+jest.mock('expo-audio', () => ({
+  useAudioPlayer: jest.fn(() => ({
+    play: jest.fn(),
+    pause: jest.fn(),
+    stop: jest.fn(),
+    remove: jest.fn(),
+    volume: 1.0,
+    loop: false,
+    playing: false,
+    muted: false,
+    replace: jest.fn(),
+  })),
   Audio: {
-    Sound: {
-      createAsync: jest.fn(() =>
-        Promise.resolve({
-          sound: {
-            playAsync: jest.fn(() => Promise.resolve()),
-            stopAsync: jest.fn(() => Promise.resolve()),
-            unloadAsync: jest.fn(() => Promise.resolve()),
-            setVolumeAsync: jest.fn(() => Promise.resolve()),
-            setIsLoopingAsync: jest.fn(() => Promise.resolve()),
-          },
-        }),
-      ),
-    },
     setAudioModeAsync: jest.fn(() => Promise.resolve()),
   },
 }));
