@@ -74,7 +74,12 @@ describe('App', () => {
     });
 
     it('handles device not being physical device', async () => {
-      (Device.isDevice as any) = false;
+      // Mock Device.isDevice before rendering
+      const originalIsDevice = Device.isDevice;
+      Object.defineProperty(Device, 'isDevice', {
+        value: false,
+        writable: true,
+      });
 
       render(<App />);
 
@@ -82,6 +87,12 @@ describe('App', () => {
         expect((globalThis as any).alert).toHaveBeenCalledWith(
           'Push notifications require a physical device.',
         );
+      });
+
+      // Restore original value
+      Object.defineProperty(Device, 'isDevice', {
+        value: originalIsDevice,
+        writable: true,
       });
     });
 

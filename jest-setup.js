@@ -30,6 +30,17 @@ jest.mock('react-native', () => {
         }
         return element;
       }
+      // Special handling for Modal component to respect visible prop
+      if (name === 'Modal') {
+        if (!props.visible) {
+          return null;
+        }
+        return React.createElement(
+          'div',
+          { ...props, ref, 'data-testid': name },
+          props.children,
+        );
+      }
       return React.createElement('div', { ...props, ref, 'data-testid': name });
     });
     Component.displayName = name;
@@ -78,6 +89,11 @@ jest.mock('react-native', () => {
     SafeAreaView: createMockComponent('SafeAreaView'),
     FlatList: createMockComponent('FlatList'),
     ScrollView: createMockComponent('ScrollView'),
+    Modal: createMockComponent('Modal'),
+    TextInput: createMockComponent('TextInput'),
+    Alert: {
+      alert: jest.fn(),
+    },
   };
 });
 
@@ -196,7 +212,12 @@ jest.mock('./CountdownTimer', () => {
   const React = require('react');
   const { Text } = require('react-native');
 
-  return function MockCountdownTimer({ timeInSeconds, style }) {
+  return function MockCountdownTimer({
+    timeInSeconds,
+    style,
+    onComplete,
+    isPlaying = true,
+  }) {
     const formatTime = (seconds) => {
       const mins = Math.floor(seconds / 60);
       const secs = seconds % 60;
@@ -205,10 +226,42 @@ jest.mock('./CountdownTimer', () => {
         .padStart(2, '0')}`;
     };
 
+    // Simulate countdown behavior in tests
+    React.useEffect(() => {
+      if (isPlaying && timeInSeconds <= 0 && onComplete) {
+        onComplete();
+      }
+    }, [timeInSeconds, isPlaying, onComplete]);
+
     return React.createElement(
       'Text',
       { 'data-testid': 'countdown-timer', style },
       formatTime(timeInSeconds),
+    );
+  };
+});
+
+// Mock our AnimatedEmoji component to avoid complex animation testing
+jest.mock('./AnimatedEmoji', () => {
+  const React = require('react');
+  const { Text } = require('react-native');
+
+  return function MockAnimatedEmoji({
+    screenWidth,
+    screenHeight,
+    delay = 0,
+    isNotificationMode = false,
+    emojiIndex = 0,
+    totalEmojis = 1,
+  }) {
+    return React.createElement(
+      'Text',
+      {
+        'data-testid': `animated-emoji-${emojiIndex}`,
+      },
+      `MockEmoji-${screenWidth}x${screenHeight}-delay${delay}${
+        isNotificationMode ? '-notification' : ''
+      }`,
     );
   };
 });

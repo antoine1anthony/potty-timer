@@ -19,6 +19,10 @@ import {
   useWindowDimensions,
   AppState,
   type AppStateStatus,
+  Modal,
+  TouchableOpacity,
+  TextInput,
+  Alert,
 } from 'react-native';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import AnimatedEmoji from './AnimatedEmoji';
@@ -90,6 +94,9 @@ function PottyTimerApp() {
   const [countdownTime, setCountdownTime] = useState(3600); // 1 hour in seconds
   const [debugMode, setDebugMode] = useState(false);
   const [toiletEmojiTapCount, setToiletEmojiTapCount] = useState(0);
+  const [showTimerSelector, setShowTimerSelector] = useState(false);
+  const [customMinutes, setCustomMinutes] = useState('60');
+  const [customSeconds, setCustomSeconds] = useState('00');
   const { width, height } = useWindowDimensions();
   const appState = useRef<AppStateStatus>(AppState.currentState);
   const colorCycleRef = useRef<any>(null); // Using any to avoid TypeScript timeout issues
@@ -104,6 +111,13 @@ function PottyTimerApp() {
     '#DDA0DD', // Plum
     '#98D8C8', // Mint
     '#F7DC6F', // Light Yellow
+  ];
+
+  // Timer preset options
+  const timerPresets = [
+    { label: '30 Minutes', value: 1800 },
+    { label: '1 Hour', value: 3600 },
+    { label: '2 Hours', value: 7200 },
   ];
 
   useEffect(() => {
@@ -250,11 +264,42 @@ function PottyTimerApp() {
   // Responsive font size calculation
   const textFontSize = width < 360 ? 18 : width < 768 ? 24 : 32;
 
-  // Generate multiple emojis for notification mode
+  // Handle timer duration selection
+  const selectTimerDuration = (seconds: number) => {
+    setCountdownTime(seconds);
+    setShowTimerSelector(false);
+    // Haptic feedback for selection
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  };
+
+  // Handle custom timer input
+  const handleCustomTimer = () => {
+    const minutes = parseInt(customMinutes) || 0;
+    const seconds = parseInt(customSeconds) || 0;
+
+    if (minutes > 99 || seconds > 59 || (minutes === 0 && seconds === 0)) {
+      Alert.alert('Invalid Time', 'Please enter a valid time up to 99:59');
+      return;
+    }
+
+    const totalSeconds = minutes * 60 + seconds;
+    selectTimerDuration(totalSeconds);
+  };
+
+  // Format time for display
+  const formatDisplayTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs
+      .toString()
+      .padStart(2, '0')}`;
+  };
+
+  // Generate multiple emojis for notification mode with enhanced layout
   const renderMultipleEmojis = () => {
     if (!isNotificationMode) return null;
 
-    const emojiCount = 8; // Number of emojis to show
+    const emojiCount = 12; // Increased for top and bottom rows
     const emojis = [];
 
     for (let i = 0; i < emojiCount; i++) {
@@ -263,13 +308,83 @@ function PottyTimerApp() {
           key={i}
           screenWidth={width}
           screenHeight={height}
-          delay={i * 200} // Stagger the animations
+          delay={i * 150} // Reduced delay for more dynamic effect
+          isNotificationMode={true}
+          emojiIndex={i}
+          totalEmojis={emojiCount}
         />,
       );
     }
 
     return emojis;
   };
+
+  // Timer Selection Modal
+  const renderTimerSelector = () => (
+    <Modal
+      visible={showTimerSelector}
+      transparent={true}
+      animationType='slide'
+      onRequestClose={() => setShowTimerSelector(false)}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Select Timer Duration</Text>
+
+          {/* Preset Options */}
+          {timerPresets.map((preset, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.presetButton,
+                countdownTime === preset.value && styles.selectedPreset,
+              ]}
+              onPress={() => selectTimerDuration(preset.value)}>
+              <Text
+                style={[
+                  styles.presetText,
+                  countdownTime === preset.value && styles.selectedPresetText,
+                ]}>
+                {preset.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+
+          {/* Custom Timer Input */}
+          <Text style={styles.customLabel}>Custom Timer (up to 99:59):</Text>
+          <View style={styles.customInputContainer}>
+            <TextInput
+              style={styles.timeInput}
+              value={customMinutes}
+              onChangeText={setCustomMinutes}
+              placeholder='MM'
+              keyboardType='numeric'
+              maxLength={2}
+            />
+            <Text style={styles.timeSeparator}>:</Text>
+            <TextInput
+              style={styles.timeInput}
+              value={customSeconds}
+              onChangeText={setCustomSeconds}
+              placeholder='SS'
+              keyboardType='numeric'
+              maxLength={2}
+            />
+            <TouchableOpacity
+              style={styles.setButton}
+              onPress={handleCustomTimer}>
+              <Text style={styles.setButtonText}>Set</Text>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={() => setShowTimerSelector(false)}>
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
 
   return (
     <TouchableWithoutFeedback
@@ -284,14 +399,21 @@ function PottyTimerApp() {
           },
         ]}
         testID='main-container'>
-        {/* Countdown Timer - Only in Normal Mode */}
+        {/* Countdown Timer with Settings Button - Only in Normal Mode */}
         {!isNotificationMode && (
-          <CountdownTimer
-            timeInSeconds={countdownTime}
-            isPlaying={!isNotificationMode}
-            onComplete={handleCountdownComplete}
-            style={styles.countdownWrapper}
-          />
+          <View style={styles.timerSection}>
+            <CountdownTimer
+              timeInSeconds={countdownTime}
+              isPlaying={!isNotificationMode}
+              onComplete={handleCountdownComplete}
+              style={styles.countdownWrapper}
+            />
+            <TouchableOpacity
+              style={styles.settingsButton}
+              onPress={() => setShowTimerSelector(true)}>
+              <Text style={styles.settingsButtonText}>⚙️ Timer Settings</Text>
+            </TouchableOpacity>
+          </View>
         )}
 
         <View style={styles.textContainer}>
@@ -324,7 +446,11 @@ function PottyTimerApp() {
 
         {/* Show single emoji for normal mode */}
         {showEmoji && !isNotificationMode && (
-          <AnimatedEmoji screenWidth={width} screenHeight={height} />
+          <AnimatedEmoji
+            screenWidth={width}
+            screenHeight={height}
+            isNotificationMode={false}
+          />
         )}
 
         {/* Show multiple emojis for notification mode */}
@@ -335,6 +461,9 @@ function PottyTimerApp() {
             ? 'Tap anywhere to dismiss!'
             : 'Tap anywhere for a potty break animation!'}
         </Text>
+
+        {/* Timer Selection Modal */}
+        {renderTimerSelector()}
       </SafeAreaView>
     </TouchableWithoutFeedback>
   );
@@ -366,8 +495,24 @@ const styles = StyleSheet.create({
     color: '#777',
     textAlign: 'center',
   },
-  countdownWrapper: {
+  timerSection: {
+    alignItems: 'center',
     marginBottom: 20,
+  },
+  countdownWrapper: {
+    marginBottom: 10,
+  },
+  settingsButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 10,
+  },
+  settingsButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   },
   textContainer: {
     alignItems: 'center',
@@ -380,6 +525,99 @@ const styles = StyleSheet.create({
     color: 'red',
     textAlign: 'center',
     marginTop: 5,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 20,
+    width: '80%',
+    maxWidth: 350,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 20,
+    color: '#333',
+  },
+  presetButton: {
+    backgroundColor: '#f8f9fa',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 10,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  selectedPreset: {
+    backgroundColor: '#007AFF',
+    borderColor: '#0051D0',
+  },
+  presetText: {
+    fontSize: 16,
+    textAlign: 'center',
+    color: '#333',
+    fontWeight: '500',
+  },
+  selectedPresetText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  customLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 20,
+    marginBottom: 10,
+    color: '#333',
+  },
+  customInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  timeInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 18,
+    textAlign: 'center',
+    width: 60,
+    marginHorizontal: 5,
+  },
+  timeSeparator: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginHorizontal: 5,
+  },
+  setButton: {
+    backgroundColor: '#28a745',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginLeft: 10,
+  },
+  setButtonText: {
+    color: 'white',
+    fontWeight: '600',
+  },
+  cancelButton: {
+    backgroundColor: '#dc3545',
+    padding: 15,
+    borderRadius: 10,
+    marginTop: 10,
+  },
+  cancelButtonText: {
+    color: 'white',
+    fontSize: 16,
+    textAlign: 'center',
+    fontWeight: '600',
   },
 });
 
