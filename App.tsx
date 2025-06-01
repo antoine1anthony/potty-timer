@@ -55,9 +55,11 @@ Notifications.setNotificationHandler({
  */
 const scheduleLocalNotification = async () => {
   try {
+    console.log('🔄 Attempting to schedule local notification...');
     await Notifications.cancelAllScheduledNotificationsAsync();
     console.log('📱 Scheduling local notification (development mode)');
-    await Notifications.scheduleNotificationAsync({
+
+    const result = await Notifications.scheduleNotificationAsync({
       content: {
         title: '🚽 Potty Time!',
         body: "It's time to take a potty break! (Local notification)",
@@ -69,8 +71,9 @@ const scheduleLocalNotification = async () => {
         repeats: true,
       },
     });
+    console.log('✅ Local notification scheduled with ID:', result);
   } catch (error) {
-    console.error('Error scheduling local notification:', error);
+    console.error('❌ Error scheduling local notification:', error);
   }
 };
 
@@ -113,28 +116,38 @@ const setupPushNotifications = async () => {
  * Requests notification permissions and sets up appropriate notification type.
  */
 const registerAndScheduleNotifications = async () => {
+  console.log('🚀 Starting notification registration process...');
+
   if (!Device.isDevice) {
+    console.log('❌ Not a physical device, notifications require real device');
     alert('Push notifications require a physical device.');
     return;
   }
 
+  console.log('📱 Requesting notification permissions...');
   const { status } = await Notifications.requestPermissionsAsync();
   if (status !== 'granted') {
+    console.log('❌ Notification permissions denied');
     alert('Permission for notifications not granted!');
     // Haptic feedback for error
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     return;
   }
 
+  console.log('✅ Notification permissions granted');
+
   // Choose notification strategy based on environment
   if (isProduction) {
+    console.log('🚀 Production mode: Setting up push notifications');
     await setupPushNotifications();
   } else {
+    console.log('🔧 Development mode: Setting up local notifications');
     await scheduleLocalNotification();
   }
 
   // Haptic feedback for successful setup
   await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  console.log('🎉 Notification setup completed');
 };
 
 function PottyTimerApp() {
@@ -580,9 +593,12 @@ function PottyTimerApp() {
               )}
 
               {/* Environment indicator */}
-              <Text style={[styles.envText, { fontSize: textFontSize * 0.4 }]}>
-                {isDevelopment ? '🔧 DEV MODE' : '🚀 PROD MODE'}
-              </Text>
+              {debugMode ? (
+                <Text
+                  style={[styles.envText, { fontSize: textFontSize * 0.4 }]}>
+                  {isDevelopment ? '🔧 DEV MODE' : '🚀 PROD MODE'}
+                </Text>
+              ) : null}
             </>
           )}
         </View>
