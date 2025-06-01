@@ -54,20 +54,15 @@ Potty training is a big milestone, but even the most attentive adult can lose tr
 ### 1. **Quick Start**
 
 ```bash
-# Clone or create the project
-npx create-expo-app@latest potty-timer --template
+# Clone the official repo
+git clone https://github.com/antoine1anthony/potty-timer.git
 cd potty-timer
 
-# Install all dependencies
-npx expo install react-native-reanimated react-native-safe-area-context expo-notifications expo-device expo-haptics
+# Install all dependencies (using Expo CLI)
+npx expo install
 ```
 
-### 2. **Add the Code**
-
-- Replace `App.tsx` and add `AnimatedEmoji.tsx` from this repository
-- The app includes all necessary configurations for Expo SDK 53
-
-### 3. **Configure Your Environment**
+### 2. **Configure Your Environment**
 
 Your `babel.config.js` should be:
 
@@ -77,7 +72,7 @@ module.exports = {
 };
 ```
 
-### 4. **Run the App**
+### 3. **Run the App**
 
 ```bash
 # For testing in Expo Go (visual features work)
@@ -88,7 +83,7 @@ npx expo run:ios    # iOS
 npx expo run:android # Android
 ```
 
-### 5. **Experience the Magic**
+### 4. **Experience the Magic**
 
 1. **Grant notification permissions** when prompted
 2. **Wait 5 seconds** for the test dramatic notification mode
