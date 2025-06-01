@@ -37,6 +37,11 @@ export default function CountdownTimer({
   const timeString = formatTime(timeLeft);
   const digits = timeString.split('');
 
+  // Reset timer when timeInSeconds prop changes
+  useEffect(() => {
+    setTimeLeft(timeInSeconds);
+  }, [timeInSeconds]);
+
   // Countdown logic
   useEffect(() => {
     if (!isPlaying || timeLeft <= 0) return;

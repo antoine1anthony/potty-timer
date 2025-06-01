@@ -27,6 +27,9 @@ interface AnimatedEmojiProps {
   screenWidth: number;
   screenHeight: number;
   delay?: number; // Optional delay for staggered animations
+  isNotificationMode?: boolean; // Add prop to distinguish between modes
+  emojiIndex?: number; // Index for positioning in notification mode
+  totalEmojis?: number; // Total number of emojis for positioning calculations
 }
 
 /**
@@ -34,11 +37,17 @@ interface AnimatedEmojiProps {
  * @param screenWidth - width of the device screen
  * @param screenHeight - height of the device screen
  * @param delay - optional delay in milliseconds before animation starts
+ * @param isNotificationMode - whether this is in notification mode for different positioning
+ * @param emojiIndex - index of this emoji in notification mode for positioning
+ * @param totalEmojis - total number of emojis for positioning calculations
  */
 const AnimatedEmoji: React.FC<AnimatedEmojiProps> = ({
   screenWidth,
   screenHeight,
   delay = 0,
+  isNotificationMode = false,
+  emojiIndex = 0,
+  totalEmojis = 1,
 }) => {
   // Animation state
   const translateY = useSharedValue(screenHeight);
@@ -51,19 +60,56 @@ const AnimatedEmoji: React.FC<AnimatedEmojiProps> = ({
     (screenWidth < 400 ? 40 : screenWidth < 768 ? 60 : 100) *
     baseSizeMultiplier;
 
-  // Random horizontal position for fun - spread across screen in notification mode
-  const left =
-    delay > 0
-      ? Math.random() * (screenWidth - emojiSize) // Full random spread for notification mode
-      : Math.random() * (screenWidth - emojiSize); // Random position for single emoji
+  // Calculate position for notification mode semi-step pyramid layout
+  const calculateNotificationPosition = () => {
+    if (!isNotificationMode) {
+      return Math.random() * (screenWidth - emojiSize);
+    }
+
+    const totalInRow = Math.ceil(totalEmojis / 2); // Split into two rows
+    const isTopRow = emojiIndex < totalInRow;
+    const indexInRow = isTopRow ? emojiIndex : emojiIndex - totalInRow;
+    const emojisInThisRow = isTopRow ? totalInRow : totalEmojis - totalInRow;
+
+    // Create semi-step pyramid spacing
+    const baseSpacing = screenWidth / (emojisInThisRow + 1);
+    const stepOffset = isTopRow ? 0 : baseSpacing * 0.5; // Offset bottom row for pyramid effect
+    const pyramidOffset = (totalInRow - emojisInThisRow) * baseSpacing * 0.25; // Center adjustment
+
+    return (
+      stepOffset +
+      pyramidOffset +
+      baseSpacing * (indexInRow + 1) -
+      emojiSize / 2
+    );
+  };
+
+  // Random horizontal position for fun - use pyramid layout for notification mode
+  const left = calculateNotificationPosition();
 
   const emoji = emojis[Math.floor(Math.random() * emojis.length)];
 
   useEffect(() => {
     // Apply delay if specified
     const startAnimations = () => {
-      // Animate emoji upwards and fade out - stopping at middle of screen
-      translateY.value = withTiming(-screenHeight / 2, {
+      // Calculate target position: go higher above countdown/text by 10-20px
+      // For notification mode, create different heights for top and bottom rows
+      const extraHeight = 10 + Math.random() * 10; // 10-20px additional height
+
+      let targetY;
+      if (isNotificationMode) {
+        const totalInRow = Math.ceil(totalEmojis / 2);
+        const isTopRow = emojiIndex < totalInRow;
+        // Top row goes higher, bottom row goes to middle-upper area with more spread
+        targetY = isTopRow
+          ? -(screenHeight * 0.8) - extraHeight // Top row very high
+          : -(screenHeight * 0.6) - extraHeight; // Bottom row medium-high
+      } else {
+        targetY = -(screenHeight * 0.75) - extraHeight; // Normal mode goes to top 75% of screen
+      }
+
+      // Animate emoji upwards and fade out
+      translateY.value = withTiming(targetY, {
         duration: 4000,
         easing: Easing.out(Easing.exp),
       });
@@ -94,7 +140,7 @@ const AnimatedEmoji: React.FC<AnimatedEmojiProps> = ({
     } else {
       startAnimations();
     }
-  }, [delay]);
+  }, [delay, isNotificationMode, emojiIndex, totalEmojis]);
 
   // Animated style
   const animatedStyle = useAnimatedStyle(() => ({
