@@ -25,6 +25,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
+import { Audio } from 'expo-av';
 import AnimatedEmoji from './AnimatedEmoji';
 import CountdownTimer from './CountdownTimer';
 import * as Notifications from 'expo-notifications';
@@ -97,9 +98,13 @@ function PottyTimerApp() {
   const [showTimerSelector, setShowTimerSelector] = useState(false);
   const [customMinutes, setCustomMinutes] = useState('60');
   const [customSeconds, setCustomSeconds] = useState('00');
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
   const { width, height } = useWindowDimensions();
   const appState = useRef<AppStateStatus>(AppState.currentState);
   const colorCycleRef = useRef<any>(null); // Using any to avoid TypeScript timeout issues
+
+  // Determine if device is in landscape mode
+  const isLandscape = width > height;
 
   // Array of vibrant colors for notification mode
   const notificationColors = [
@@ -120,9 +125,43 @@ function PottyTimerApp() {
     { label: '2 Hours', value: 7200 },
   ];
 
+  // Audio functions
+  const loadAndPlayAudio = async () => {
+    try {
+      const { sound: newSound } = await Audio.Sound.createAsync(
+        require('./assets/audio/watermarked_Lunareh_Friday_Night_Feels_background_vocals_3_44.mp3'),
+        { shouldPlay: true, isLooping: true, volume: 0.5 },
+      );
+      setSound(newSound);
+    } catch (error) {
+      console.error('Error loading audio:', error);
+    }
+  };
+
+  const stopAndUnloadAudio = async () => {
+    if (sound) {
+      try {
+        await sound.stopAsync();
+        await sound.unloadAsync();
+        setSound(null);
+      } catch (error) {
+        console.error('Error stopping audio:', error);
+      }
+    }
+  };
+
   useEffect(() => {
     // Register and schedule notifications on mount
     registerAndScheduleNotifications();
+
+    // Setup audio
+    Audio.setAudioModeAsync({
+      allowsRecordingIOS: false,
+      staysActiveInBackground: false,
+      playsInSilentModeIOS: true,
+      shouldDuckAndroid: true,
+      playThroughEarpieceAndroid: false,
+    });
 
     // AppState listener: re-schedule notification if returning to foreground
     const subscription = AppState.addEventListener('change', (nextAppState) => {
@@ -134,8 +173,11 @@ function PottyTimerApp() {
       }
       appState.current = nextAppState;
     });
+
+    // Cleanup function
     return () => {
       subscription.remove();
+      stopAndUnloadAudio();
     };
   }, []);
 
@@ -166,6 +208,9 @@ function PottyTimerApp() {
   // Cycle through background colors in notification mode
   useEffect(() => {
     if (isNotificationMode) {
+      // Start playing audio when entering notification mode
+      loadAndPlayAudio();
+
       let colorIndex = 0;
       colorCycleRef.current = setInterval(() => {
         setBackgroundColor(notificationColors[colorIndex]);
@@ -174,6 +219,9 @@ function PottyTimerApp() {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       }, 800); // Change color every 800ms
     } else {
+      // Stop audio when exiting notification mode
+      stopAndUnloadAudio();
+
       if (colorCycleRef.current) {
         clearInterval(colorCycleRef.current);
         colorCycleRef.current = null;
@@ -418,9 +466,64 @@ function PottyTimerApp() {
 
         <View style={styles.textContainer}>
           {isNotificationMode ? (
-            <Text style={[styles.text, { fontSize: textFontSize }]}>
-              🚽 Time for Potty Break!! 🚽
-            </Text>
+            <View style={styles.notificationTextContainer}>
+              {isLandscape ? (
+                // Horizontal layout for landscape mode
+                <Text
+                  style={[
+                    styles.notificationText,
+                    { fontSize: textFontSize * 1.8 },
+                  ]}>
+                  🚽 Time for Potty Break!! 🚽
+                </Text>
+              ) : (
+                // Vertical layout for portrait mode
+                <View style={styles.verticalTextContainer}>
+                  <Text
+                    style={[
+                      styles.notificationText,
+                      { fontSize: textFontSize * 1.5 },
+                    ]}>
+                    🚽
+                  </Text>
+                  <Text
+                    style={[
+                      styles.notificationText,
+                      { fontSize: textFontSize * 1.2 },
+                    ]}>
+                    Time
+                  </Text>
+                  <Text
+                    style={[
+                      styles.notificationText,
+                      { fontSize: textFontSize * 1.2 },
+                    ]}>
+                    for
+                  </Text>
+                  <Text
+                    style={[
+                      styles.notificationText,
+                      { fontSize: textFontSize * 1.2 },
+                    ]}>
+                    Potty
+                  </Text>
+                  <Text
+                    style={[
+                      styles.notificationText,
+                      { fontSize: textFontSize * 1.2 },
+                    ]}>
+                    Break!!
+                  </Text>
+                  <Text
+                    style={[
+                      styles.notificationText,
+                      { fontSize: textFontSize * 1.5 },
+                    ]}>
+                    🚽
+                  </Text>
+                </View>
+              )}
+            </View>
           ) : (
             <>
               <View style={styles.textRow}>
@@ -618,6 +721,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     fontWeight: '600',
+  },
+  notificationTextContainer: {
+    alignItems: 'center',
+  },
+  verticalTextContainer: {
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+  notificationText: {
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#222',
+    textAlign: 'center',
   },
 });
 

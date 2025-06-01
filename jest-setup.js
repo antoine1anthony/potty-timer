@@ -189,6 +189,26 @@ jest.mock('expo-notifications', () => ({
   },
 }));
 
+// Mock expo-av for audio functionality
+jest.mock('expo-av', () => ({
+  Audio: {
+    Sound: {
+      createAsync: jest.fn(() =>
+        Promise.resolve({
+          sound: {
+            playAsync: jest.fn(() => Promise.resolve()),
+            stopAsync: jest.fn(() => Promise.resolve()),
+            unloadAsync: jest.fn(() => Promise.resolve()),
+            setVolumeAsync: jest.fn(() => Promise.resolve()),
+            setIsLoopingAsync: jest.fn(() => Promise.resolve()),
+          },
+        }),
+      ),
+    },
+    setAudioModeAsync: jest.fn(() => Promise.resolve()),
+  },
+}));
+
 // Mock react-native-safe-area-context
 jest.mock('react-native-safe-area-context', () => {
   const React = require('react');
@@ -265,3 +285,9 @@ jest.mock('./AnimatedEmoji', () => {
     );
   };
 });
+
+// Mock audio files
+jest.mock(
+  './assets/audio/watermarked_Lunareh_Friday_Night_Feels_background_vocals_3_44.mp3',
+  () => 'mock-audio-file',
+);

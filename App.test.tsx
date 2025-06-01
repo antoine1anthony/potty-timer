@@ -186,7 +186,11 @@ describe('App', () => {
       });
 
       await waitFor(() => {
-        expect(getByText('🚽 Time for Potty Break!! 🚽')).toBeTruthy();
+        // In portrait mode (375x667), text should be vertical
+        expect(getByText('Time')).toBeTruthy();
+        expect(getByText('for')).toBeTruthy();
+        expect(getByText('Potty')).toBeTruthy();
+        expect(getByText('Break!!')).toBeTruthy();
       });
 
       // Tap to dismiss
@@ -232,7 +236,11 @@ describe('App', () => {
       });
 
       await waitFor(() => {
-        expect(getByText('🚽 Time for Potty Break!! 🚽')).toBeTruthy();
+        // In portrait mode (375x667), text should be vertical
+        expect(getByText('Time')).toBeTruthy();
+        expect(getByText('for')).toBeTruthy();
+        expect(getByText('Potty')).toBeTruthy();
+        expect(getByText('Break!!')).toBeTruthy();
         expect(getByText('Tap anywhere to dismiss!')).toBeTruthy();
         expect(Haptics.notificationAsync).toHaveBeenCalledWith(
           Haptics.NotificationFeedbackType.Warning,
@@ -250,7 +258,11 @@ describe('App', () => {
       });
 
       await waitFor(() => {
-        expect(getByText('🚽 Time for Potty Break!! 🚽')).toBeTruthy();
+        // In portrait mode (375x667), text should be vertical
+        expect(getByText('Time')).toBeTruthy();
+        expect(getByText('for')).toBeTruthy();
+        expect(getByText('Potty')).toBeTruthy();
+        expect(getByText('Break!!')).toBeTruthy();
         expect(Haptics.notificationAsync).toHaveBeenCalledWith(
           Haptics.NotificationFeedbackType.Warning,
         );
