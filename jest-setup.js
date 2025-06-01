@@ -51,7 +51,9 @@ jest.mock('react-native', () => {
     // Our specific overrides for testing
     AppState: {
       currentState: 'active',
-      addEventListener: jest.fn(() => ({ remove: jest.fn() })),
+      addEventListener: jest.fn((type, handler) => ({
+        remove: jest.fn(),
+      })),
     },
     useWindowDimensions: jest.fn(() => ({ width: 375, height: 667 })),
 

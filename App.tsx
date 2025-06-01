@@ -208,8 +208,7 @@ function PottyTimerApp() {
   // Cycle through background colors in notification mode
   useEffect(() => {
     if (isNotificationMode) {
-      // Start playing audio when entering notification mode
-      loadAndPlayAudio();
+      // Audio is now started directly in triggerNotificationMode() for immediate playback
 
       let colorIndex = 0;
       colorCycleRef.current = setInterval(() => {
@@ -246,6 +245,7 @@ function PottyTimerApp() {
 
   // Countdown tick handler
   const handleCountdownComplete = () => {
+    // Immediately trigger notification mode when countdown completes
     triggerNotificationMode();
   };
 
@@ -260,6 +260,8 @@ function PottyTimerApp() {
   // Triggers dramatic notification mode
   function triggerNotificationMode() {
     setIsNotificationMode(true);
+    // Start audio immediately when notification mode is triggered
+    loadAndPlayAudio();
     // Strong haptic feedback for notification
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
   }
@@ -474,7 +476,7 @@ function PottyTimerApp() {
                     styles.notificationText,
                     { fontSize: textFontSize * 1.8 },
                   ]}>
-                  🚽 Time for Potty Break!! 🚽
+                  🚽 Time to use the Potty!! 🚽
                 </Text>
               ) : (
                 // Vertical layout for portrait mode
@@ -498,21 +500,28 @@ function PottyTimerApp() {
                       styles.notificationText,
                       { fontSize: textFontSize * 1.2 },
                     ]}>
-                    for
+                    to
                   </Text>
                   <Text
                     style={[
                       styles.notificationText,
                       { fontSize: textFontSize * 1.2 },
                     ]}>
-                    Potty
+                    use
                   </Text>
                   <Text
                     style={[
                       styles.notificationText,
                       { fontSize: textFontSize * 1.2 },
                     ]}>
-                    Break!!
+                    the
+                  </Text>
+                  <Text
+                    style={[
+                      styles.notificationText,
+                      { fontSize: textFontSize * 1.2 },
+                    ]}>
+                    Potty!!
                   </Text>
                   <Text
                     style={[
