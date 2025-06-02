@@ -31,7 +31,7 @@ module.exports = {
     },
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(react-native|@react-native|react-native-reanimated|expo|@expo|expo-haptics|expo-device|expo-notifications|expo-modules-core|react-native-safe-area-context|react-native-gesture-handler|expo-sqlite|expo-audio|expo-router|expo/virtual)/)',
+    'node_modules/(?!(react-native|@react-native|react-native-reanimated|expo|@expo|expo-haptics|expo-device|expo-notifications|expo-modules-core|react-native-safe-area-context|react-native-gesture-handler|expo-sqlite|expo-audio|expo-router|expo/virtual|expo-asset|expo-av)/)',
   ],
   testEnvironment: 'jsdom', // Default for React components
   projects: [
@@ -44,7 +44,7 @@ module.exports = {
       testEnvironment: 'jsdom',
       setupFilesAfterEnv: ['<rootDir>/jest-setup.js'],
       transformIgnorePatterns: [
-        'node_modules/(?!(react-native|@react-native|react-native-reanimated|expo|@expo|expo-haptics|expo-device|expo-notifications|expo-modules-core|react-native-safe-area-context|react-native-gesture-handler|expo-sqlite|expo-audio|expo-router|expo/virtual)/)',
+        'node_modules/(?!(react-native|@react-native|react-native-reanimated|expo|@expo|expo-haptics|expo-device|expo-notifications|expo-modules-core|react-native-safe-area-context|react-native-gesture-handler|expo-sqlite|expo-audio|expo-router|expo/virtual|expo-asset|expo-av)/)',
       ],
     },
     {
@@ -53,7 +53,7 @@ module.exports = {
       testEnvironment: 'node',
       setupFilesAfterEnv: ['<rootDir>/jest-setup.js'],
       transformIgnorePatterns: [
-        'node_modules/(?!(react-native|@react-native|react-native-reanimated|expo|@expo|expo-haptics|expo-device|expo-notifications|expo-modules-core|react-native-safe-area-context|react-native-gesture-handler|expo-sqlite|expo-audio|expo-router|expo/virtual)/)',
+        'node_modules/(?!(react-native|@react-native|react-native-reanimated|expo|@expo|expo-haptics|expo-device|expo-notifications|expo-modules-core|react-native-safe-area-context|react-native-gesture-handler|expo-sqlite|expo-audio|expo-router|expo/virtual|expo-asset|expo-av)/)',
       ],
     },
   ],

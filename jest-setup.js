@@ -229,6 +229,63 @@ jest.mock('expo-audio', () => ({
   },
 }));
 
+// Mock expo-sqlite for database functionality
+jest.mock('expo-sqlite', () => ({
+  openDatabase: jest.fn(() => ({
+    transaction: jest.fn((callback, errorCallback, successCallback) => {
+      // Mock successful transaction
+      const mockTx = {
+        executeSql: jest.fn((sql, params, successCallback, errorCallback) => {
+          // Mock successful SQL execution
+          if (successCallback) {
+            const mockResult = {
+              rows: {
+                length: 0,
+                item: jest.fn(() => ({})),
+              },
+            };
+            successCallback(mockTx, mockResult);
+          }
+        }),
+      };
+
+      try {
+        callback(mockTx);
+        if (successCallback) successCallback();
+      } catch (error) {
+        if (errorCallback) errorCallback(error);
+      }
+    }),
+    close: jest.fn(),
+  })),
+  openDatabaseSync: jest.fn(() => ({
+    execSync: jest.fn(),
+    getAllSync: jest.fn(),
+    getFirstSync: jest.fn(),
+    runSync: jest.fn(),
+    close: jest.fn(),
+  })),
+  openDatabaseAsync: jest.fn(() =>
+    Promise.resolve({
+      execAsync: jest.fn(),
+      getAllAsync: jest.fn(),
+      getFirstAsync: jest.fn(),
+      runAsync: jest.fn(),
+      closeAsync: jest.fn(),
+    }),
+  ),
+}));
+
+// Mock expo-asset to prevent ES module issues
+jest.mock('expo-asset', () => ({
+  Asset: {
+    fromModule: jest.fn(() => ({
+      downloadAsync: jest.fn(() => Promise.resolve()),
+      localUri: 'mock-asset-uri',
+    })),
+  },
+}));
+
 // Mock react-native-safe-area-context
 jest.mock('react-native-safe-area-context', () => {
   const React = require('react');
