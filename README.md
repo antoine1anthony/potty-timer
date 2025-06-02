@@ -1,210 +1,329 @@
 # 🚽 Potty Timer
 
-A **dramatic**, **engaging**, and **responsive** app for **parents and caretakers**---get an unforgettable, hourly reminder to help put your potty-training child or dependent on the potty! With **cycling rainbow backgrounds**, **multiple animated emojis**, **haptic feedback**, and gentle local notifications, Potty Timer turns the sometimes stressful routine of potty training into an interactive, fun experience.
+A **cross-platform** timer app built with **Expo Router**, **SQLite database**, and **comprehensive API architecture** for **parents and caretakers**. Get reliable, customizable reminders to help with potty training! Features **persistent timers**, **background notifications**, **haptic feedback**, **animated emojis**, and **full offline functionality**.
 
 ---
 
 ## Why Potty Timer?
 
-Potty training is a big milestone, but even the most attentive adult can lose track of time in a busy day. Potty Timer gives you a **dramatic, impossible-to-miss** hourly reminder that cycles through vibrant colors and fills your screen with animated emojis so your child or dependent never misses a scheduled trip to the potty. Just open the app, grant notification permissions, and let the timer handle the rest.
+Potty training requires consistency and reliable reminders. Potty Timer provides a **production-ready** solution with **persistent data storage**, **customizable timer intervals**, and **impossible-to-miss notifications**. Built with modern React Native architecture and comprehensive testing, it's designed for real-world reliability.
 
 ---
 
 ## ✨ Features
 
-### 🎨 **Dramatic Notification Mode**
+### 🗄️ **Persistent Timer Management**
 
-- **Cycling rainbow backgrounds**: When it's potty time, your screen transforms with 8 vibrant colors cycling every 800ms
-- **Multiple animated emojis**: 8 different potty-themed emojis appear simultaneously in random positions with staggered animations
-- **Attention-grabbing text**: "🚽 Time for Potty Break!! 🚽" replaces the normal message
-- **Tap to dismiss**: Touch anywhere on the screen to return to normal mode
+- **SQLite Database**: Reliable local storage for timer state and history
+- **API Routes**: RESTful endpoints for timer CRUD operations
+- **Context State Management**: Centralized timer state with React Context
+- **Automatic Persistence**: Timers survive app restarts and crashes
+- **Multiple Timer Support**: Create, manage, and switch between different timers
 
-### 📳 **Enhanced Haptic Feedback**
+### ⏰ **Smart Timer System**
 
-- **Notification alerts**: Strong haptic feedback when potty time activates
-- **Color changes**: Gentle haptic pulse with each background color change
-- **User interactions**: Tactile feedback for all taps and dismissals
-- **Success confirmations**: Satisfying haptic feedback when dismissing alerts
+- **Customizable Intervals**: 30 minutes, 1 hour, 2 hours, or custom duration
+- **Visual Countdown**: Live countdown display with minutes and seconds
+- **Background Persistence**: Continues running when app is backgrounded
+- **Completion Notifications**: Local notifications when timer expires
+- **One-touch Controls**: Start, pause, reset, and adjust timers easily
 
-### 🎭 **Interactive Animations**
+### 🎭 **Engaging Visual Experience**
 
-- **10 potty emojis**: 🚽🧻💧🛁🧼🚿🧴🪥🧽🪒 for variety and fun
-- **Responsive sizes**: Emojis scale based on device size with random variations
-- **Bounce effects**: Subtle scale animations with spring physics
-- **Staggered timing**: Multiple emojis animate with 200ms delays for visual flow
+- **Animated Emojis**: 10 potty-themed emojis with physics-based animations
+- **Dramatic Notification Mode**: Color cycling and multiple emoji displays
+- **Responsive Design**: Adapts beautifully to phones, tablets, and web
+- **Debug Mode**: Triple-tap toilet emoji to activate test mode
+- **Haptic Feedback**: Tactile confirmation for all interactions
 
-### ⏰ **Smart Timing System**
+### 🔄 **Production-Ready Architecture**
 
-- **Hourly notifications**: Persistent reminders every 60 minutes
-- **Instant test mode**: 5-second trigger for immediate testing
-- **Background persistence**: Continues working when app is backgrounded
-- **Manual triggers**: Tap for instant single emoji animation in normal mode
-
-### 📱 **Platform Excellence**
-
-- **Cross-platform**: iOS, Android, and Web support
-- **Responsive design**: Adapts beautifully to phones, tablets, and web browsers
-- **Offline operation**: No internet required after installation
-- **Modern architecture**: Built on Expo SDK 53 with latest React Native
+- **Expo Router**: File-based routing with API route support
+- **TypeScript**: Full type safety and excellent developer experience
+- **Comprehensive Testing**: 86 passing tests with 100% pass rate
+- **Error Handling**: Graceful error recovery and user feedback
+- **Environment Configuration**: Development and production builds
 
 ---
 
-## 🚀 How to Use
+## 🚀 Quick Start
 
-### 1. **Quick Start**
+### 1. **Installation**
 
 ```bash
-# Clone or create the project
-npx create-expo-app@latest potty-timer --template
+# Clone the repository
+git clone <repository-url>
 cd potty-timer
 
-# Install all dependencies
-npx expo install react-native-reanimated react-native-safe-area-context expo-notifications expo-device expo-haptics
+# Install dependencies
+npm install
+
+# Start development server
+npx expo start
 ```
 
-### 2. **Add the Code**
-
-- Replace `App.tsx` and add `AnimatedEmoji.tsx` from this repository
-- The app includes all necessary configurations for Expo SDK 53
-
-### 3. **Configure Your Environment**
-
-Your `babel.config.js` should be:
-
-```js
-module.exports = {
-  presets: ['babel-preset-expo'],
-};
-```
-
-### 4. **Run the App**
+### 2. **Development Setup**
 
 ```bash
-# For testing in Expo Go (visual features work)
-npx expo start
+# Run with specific platform
+npx expo start --ios     # iOS simulator
+npx expo start --android # Android emulator
+npx expo start --web     # Web browser
 
-# For full notification support (recommended)
-npx expo run:ios    # iOS
-npx expo run:android # Android
+# Run tests
+npm test                 # Full test suite
+npm run test:watch      # Watch mode
+npm run test:coverage   # Coverage report
 ```
 
-### 5. **Experience the Magic**
+### 3. **Build for Production**
 
-1. **Grant notification permissions** when prompted
-2. **Wait 5 seconds** for the test dramatic notification mode
-3. **Tap anywhere** to dismiss or trigger animations
-4. **Enjoy hourly reminders** that are impossible to miss!
+```bash
+# Create development build
+npx eas build --profile development
 
----
+# Create production build
+npx eas build --profile production
 
-## 🎯 User Experience Flow
-
-### Normal Mode
-
-- Calm blue background with "🚽 Potty Timer is running!"
-- Single emoji animation when you tap the screen
-- Gentle haptic feedback for interactions
-
-### **Dramatic Notification Mode** (Every Hour)
-
-1. **Background transforms** into cycling rainbow colors
-2. **Text changes** to "🚽 Time for Potty Break!! 🚽"
-3. **8 emojis appear** simultaneously with staggered animations
-4. **Screen pulses** with haptic feedback on each color change
-5. **Continues until** user taps anywhere to dismiss
-6. **Success feedback** confirms dismissal
-
----
-
-## 🛠 Technical Highlights
-
-### **Performance Optimized**
-
-- React Native Reanimated 3 for smooth 60fps animations
-- Efficient color cycling with minimal re-renders
-- Staggered animations prevent performance bottlenecks
-
-### **Accessibility Friendly**
-
-- Strong haptic feedback for users with visual impairments
-- High contrast color combinations
-- Large touch targets for easy interaction
-
-### **Battery Conscious**
-
-- Local JavaScript timers (no background processing)
-- Haptic feedback optimized to avoid battery drain
-- Efficient animation cleanup and memory management
-
----
-
-## 📋 Customization Options
-
-### **Timing Adjustments**
-
-```typescript
-// Change notification interval (App.tsx line ~89)
-const interval = setInterval(() => {
-  triggerNotificationMode();
-}, 30 * 60 * 1000); // 30 minutes instead of 60
+# Submit to app stores
+npx eas submit
 ```
 
-### **Color Schemes**
+---
+
+## 🏗️ Architecture Overview
+
+### **File Structure**
+
+```
+potty-timer/
+├── app/                          # Expo Router app directory
+│   ├── api/                      # API routes
+│   │   └── timers/              # Timer API endpoints
+│   │       ├── +api.ts          # GET/POST /api/timers
+│   │       ├── [id]+api.ts      # GET/PUT/DELETE /api/timers/:id
+│   │       └── current+api.ts   # GET /api/timers/current
+│   ├── index.tsx                # Main app screen
+│   └── _layout.tsx              # Root layout with providers
+├── contexts/
+│   └── TimerContext.tsx         # Centralized timer state management
+├── services/
+│   └── database.ts              # SQLite database service
+├── hooks/
+│   └── useTimerAPI.ts           # API interaction hooks
+├── AnimatedEmoji.tsx            # Emoji animation component
+├── CountdownTimer.tsx           # Timer display component
+└── jest.config.js               # Comprehensive test configuration
+```
+
+### **Core Components**
+
+#### **TimerContext** - Centralized State Management
+
+- Manages all timer state with React Context
+- Handles database synchronization
+- Provides timer CRUD operations
+- Real-time countdown updates
+
+#### **Database Service** - SQLite Integration
+
+- Persistent timer storage
+- Transaction-based operations
+- Error handling and recovery
+- Database migrations and schema management
+
+#### **API Routes** - RESTful Endpoints
+
+- `/api/timers` - List and create timers
+- `/api/timers/:id` - Get, update, delete specific timer
+- `/api/timers/current` - Get active timer
+- Full CRUD operations with error handling
+
+#### **Animation System** - Engaging Visuals
+
+- Physics-based emoji animations with Reanimated 3
+- Responsive sizing and positioning
+- Staggered animations for dramatic effect
+- Haptic feedback integration
+
+---
+
+## 🎯 How to Use
+
+### **Basic Timer Operations**
+
+1. **Create Timer**: Tap the timer display area to select duration
+2. **Start Timer**: Tap the play button to begin countdown
+3. **Monitor Progress**: Watch the live countdown display
+4. **Handle Completion**: Receive notification and dismiss alert
+
+### **Advanced Features**
+
+- **Custom Durations**: Enter specific minutes and seconds
+- **Debug Mode**: Triple-tap 🚽 to activate 5-second test mode
+- **Background Mode**: Timer continues when app is backgrounded
+- **Persistent Storage**: Timers survive app restarts
+
+### **Notification Modes**
+
+- **Normal Mode**: Calm interface with single emoji animations
+- **Alert Mode**: Dramatic cycling colors with multiple emojis
+- **Debug Mode**: Quick 5-second testing for development
+
+---
+
+## 🧪 Testing
+
+### **Comprehensive Test Suite**
+
+The app includes **86 passing tests** with **100% pass rate**:
+
+```bash
+# Run all tests
+npm test
+
+# Specific test categories
+npm run test:database    # Database operations (15 tests)
+npm run test:api        # API endpoints (63 tests)
+npm run test:emoji      # Component rendering (8 tests)
+
+# Test with coverage
+npm run test:coverage
+```
+
+### **Test Coverage**
+
+- **Database Service**: Complete CRUD operations, transactions, error handling
+- **API Routes**: All endpoints, validation, error responses
+- **Timer Context**: State management, real-time updates
+- **Components**: Rendering, responsiveness, animations
+
+---
+
+## 📱 Platform Support
+
+| Platform    | Timer Management | Notifications | Database | API Routes |
+| ----------- | ---------------- | ------------- | -------- | ---------- |
+| **iOS**     | ✅ Full          | ✅ Full       | ✅ Full  | ✅ Full    |
+| **Android** | ✅ Full          | ✅ Full       | ✅ Full  | ✅ Full    |
+| **Web**     | ✅ Full          | ⚠️ Limited    | ✅ Full  | ✅ Full    |
+
+---
+
+## 🔧 Configuration
+
+### **Environment Variables**
+
+```bash
+# .env file
+EXPO_PUBLIC_ENV=development  # or 'production'
+```
+
+### **Timer Presets**
 
 ```typescript
-// Customize notification colors (App.tsx line ~48)
-const notificationColors = [
-  '#FF6B6B', // Add your favorite colors
-  '#4ECDC4',
-  // ... more colors
+// Customize in app/index.tsx
+const timerPresets = [
+  { label: '30 Minutes', value: 1800 },
+  { label: '1 Hour', value: 3600 },
+  { label: '2 Hours', value: 7200 },
 ];
 ```
 
-### **Emoji Selection**
+### **Notification Intervals**
 
 ```typescript
-// Update emoji selection (AnimatedEmoji.tsx line ~22)
-const emojis = ['🚽', '🧻', '💧', '🛁', '🧼', '🚿', '🧴', '🪥', '🧽', '🪒'];
+// Customize notification frequency
+const NOTIFICATION_INTERVAL = 3600; // 1 hour in seconds
+```
+
+---
+
+## 🛠️ Development
+
+### **Key Technologies**
+
+- **Expo SDK 53**: Latest Expo features and APIs
+- **Expo Router**: File-based routing with API routes
+- **SQLite**: Local database with expo-sqlite
+- **TypeScript**: Full type safety
+- **React Native Reanimated 3**: Smooth animations
+- **Jest**: Comprehensive testing framework
+
+### **Development Scripts**
+
+```json
+{
+  "test": "jest",
+  "test:watch": "jest --watch",
+  "test:coverage": "jest --coverage",
+  "test:database": "jest services/database.test.ts",
+  "test:api": "jest app/api/**/*.test.ts"
+}
+```
+
+### **Build Profiles**
+
+```json
+// eas.json
+{
+  "development": {
+    "env": { "EXPO_PUBLIC_ENV": "development" }
+  },
+  "production": {
+    "env": { "EXPO_PUBLIC_ENV": "production" }
+  }
+}
 ```
 
 ---
 
 ## 🎯 Who is Potty Timer For?
 
-- **Parents** with potty-training toddlers who need reliable reminders
-- **Caretakers** for young children or special needs dependents
-- **Educators** in daycare or preschool settings
-- **Anyone** who wants an engaging, impossible-to-miss hourly reminder system
+- **Parents** with potty-training toddlers needing reliable reminders
+- **Caregivers** managing multiple children's schedules
+- **Developers** wanting to study modern React Native architecture
+- **Anyone** needing a robust, customizable timer application
 
 ---
 
-## 🌐 Platform Support
+## 📊 Performance & Reliability
 
-| Platform    | Visual Features | Haptic Feedback | Notifications |
-| ----------- | --------------- | --------------- | ------------- |
-| **iOS**     | ✅ Full         | ✅ Full         | ✅ Full\*     |
-| **Android** | ✅ Full         | ✅ Full         | ✅ Full\*     |
-| **Web**     | ✅ Full         | ❌ Limited      | ❌ Limited    |
+### **Database Performance**
 
-\*Requires development build for full notification support in production
+- SQLite transactions for data integrity
+- Optimized queries with proper indexing
+- Automatic error recovery and retry logic
+
+### **Animation Performance**
+
+- 60fps animations with Reanimated 3
+- Efficient memory management
+- Smooth performance on all devices
+
+### **Testing Reliability**
+
+- 86 tests with 100% pass rate
+- Comprehensive error scenario coverage
+- CI/CD ready test suite
 
 ---
 
-## 📝 Notes
+## 🔮 Future Enhancements
 
-- **Expo Go Limitations**: Push notifications have limited support in Expo Go (SDK 53+)
-- **Development Builds**: For full notification functionality, use `npx expo run:ios/android`
-- **Web Testing**: Perfect for testing animations and visual features
-- **Haptic Support**: Requires physical device (simulators have limited haptic support)
+- **Multiple Child Support**: Separate timers for different children
+- **Analytics Dashboard**: Usage patterns and statistics
+- **Cloud Sync**: Cross-device timer synchronization
+- **Custom Themes**: Personalized color schemes and emojis
 
 ---
 
 ## 📄 License
 
-MIT
+MIT License - Feel free to use in your own projects!
 
 ---
 
-**Happy Potty Training! 🚽✨🌈**
+**Happy Potty Training! 🚽✨**
 
 _Making potty breaks impossible to forget with style and fun!_
