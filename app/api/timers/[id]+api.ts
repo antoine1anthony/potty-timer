@@ -39,8 +39,19 @@ export async function PUT(
   { id }: { id: string },
 ): Promise<Response> {
   try {
-    const url = new URL(request.url);
-    const action = url.pathname.split('/').pop();
+    // Handle empty ID case
+    if (!id || id.trim() === '') {
+      return Response.json(
+        {
+          success: false,
+          error: 'Timer not found',
+        },
+        { status: 404 },
+      );
+    }
+
+    const urlPath = request.url.split('/');
+    const action = urlPath[urlPath.length - 1];
 
     const timer = await database.getTimer(id);
     if (!timer) {
@@ -54,6 +65,7 @@ export async function PUT(
     }
 
     let updatedTimer;
+    let actionMessage = '';
 
     switch (action) {
       case 'start':
@@ -62,6 +74,7 @@ export async function PUT(
           startTime: Date.now(),
           isNotificationMode: false,
         });
+        actionMessage = 'start';
         break;
 
       case 'pause':
@@ -77,6 +90,7 @@ export async function PUT(
         } else {
           updatedTimer = timer;
         }
+        actionMessage = 'pause';
         break;
 
       case 'reset':
@@ -86,6 +100,7 @@ export async function PUT(
           remainingTime: timer.duration,
           isNotificationMode: false,
         });
+        actionMessage = 'reset';
         break;
 
       case 'duration':
@@ -107,19 +122,21 @@ export async function PUT(
           remainingTime: timer.isActive ? duration : duration,
           startTime: timer.isActive ? Date.now() : timer.startTime,
         });
+        actionMessage = 'duration';
         break;
 
       default:
         // Generic update for other fields
         const updateBody = await request.json();
         updatedTimer = await database.updateTimer(id, updateBody);
+        actionMessage = 'updated';
         break;
     }
 
     return Response.json({
       success: true,
       timer: updatedTimer,
-      message: `Timer ${action || 'updated'} successfully`,
+      message: `Timer ${actionMessage} successfully`,
     });
   } catch (error) {
     console.error(`PUT /api/timers/${id} error:`, error);

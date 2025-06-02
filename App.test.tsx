@@ -4,7 +4,7 @@ import { useWindowDimensions, AppState } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import * as Haptics from 'expo-haptics';
-import App from './App';
+import App from './app/index';
 
 // Mock the AnimatedEmoji component to avoid animation complexity in tests
 jest.mock('./AnimatedEmoji', () => {

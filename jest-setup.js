@@ -5,6 +5,15 @@ global.alert = jest.fn();
 // Mock environment variables for testing
 process.env.EXPO_PUBLIC_ENV = 'development';
 
+// Mock expo/virtual/env to fix ES module issue
+jest.mock('expo/virtual/env', () => ({
+  env: process.env,
+}));
+
+// Setup jest-json-schema for API testing
+import { matchers } from 'jest-json-schema';
+expect.extend(matchers);
+
 // Following the user's request to use real libraries as much as possible
 // We'll use the minimum mocks needed to make tests work without loading native modules
 
@@ -302,3 +311,19 @@ jest.mock(
   './assets/audio/watermarked_Lunareh_Friday_Night_Feels_background_vocals_3_44.mp3',
   () => 'mock-audio-file',
 );
+
+import '@testing-library/jest-dom';
+import 'jest-json-schema';
+
+// Polyfill for Response.json in test environment
+if (typeof Response !== 'undefined' && !Response.json) {
+  Response.json = function (body, init = {}) {
+    return new Response(JSON.stringify(body), {
+      ...init,
+      headers: {
+        'content-type': 'application/json',
+        ...init.headers,
+      },
+    });
+  };
+}
