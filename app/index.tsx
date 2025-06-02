@@ -1,10 +1,7 @@
 /**
- * App.tsx - Main entry point for the Potty Timer application.
- * - Registers for push notification permissions
- * - Schedules a local notification every hour
- * - Handles foreground and background operation
+ * index.tsx - Main screen for the Potty Timer application using expo-router.
+ * - Uses centralized timer state with API synchronization
  * - Renders responsive UI with emoji animation
- * - Allows user to manually trigger animation via tap
  * - Enhanced with haptic feedback for better UX
  * - Features dramatic "Potty Break Alert" mode with cycling colors and multiple emojis
  * - Environment-aware notifications: local in dev, push in production
@@ -25,10 +22,11 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
-import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAudioPlayer } from 'expo-audio';
-import AnimatedEmoji from './AnimatedEmoji';
-import CountdownTimer from './CountdownTimer';
+import AnimatedEmoji from '../AnimatedEmoji';
+import CountdownTimer from '../CountdownTimer';
+import { useTimer } from '../contexts/TimerContext';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import * as Haptics from 'expo-haptics';
@@ -150,14 +148,21 @@ const registerAndScheduleNotifications = async () => {
   console.log('🎉 Notification setup completed');
 };
 
-function PottyTimerApp() {
-  /**
-   * Main app component, manages animation state and notification scheduling.
-   */
+export default function PottyTimerScreen() {
+  const {
+    timer,
+    loading,
+    error,
+    createTimer,
+    startTimer,
+    pauseTimer,
+    resetTimer,
+    updateDuration,
+    setNotificationMode,
+  } = useTimer();
+
   const [showEmoji, setShowEmoji] = useState(false);
-  const [isNotificationMode, setIsNotificationMode] = useState(false);
   const [backgroundColor, setBackgroundColor] = useState('#f7f7fc');
-  const [countdownTime, setCountdownTime] = useState(3600); // 1 hour in seconds
   const [debugMode, setDebugMode] = useState(false);
   const [toiletEmojiTapCount, setToiletEmojiTapCount] = useState(0);
   const [showTimerSelector, setShowTimerSelector] = useState(false);
@@ -165,10 +170,10 @@ function PottyTimerApp() {
   const [customSeconds, setCustomSeconds] = useState('00');
   const { width, height } = useWindowDimensions();
   const appState = useRef<AppStateStatus>(AppState.currentState);
-  const colorCycleRef = useRef<any>(null); // Using any to avoid TypeScript timeout issues
+  const colorCycleRef = useRef<any>(null);
 
   // Initialize audio player
-  const audioSource = require('./assets/audio/watermarked_Lunareh_Friday_Night_Feels_background_vocals_3_44.mp3');
+  const audioSource = require('../assets/audio/watermarked_Lunareh_Friday_Night_Feels_background_vocals_3_44.mp3');
   const player = useAudioPlayer(audioSource);
 
   // Determine if device is in landscape mode
@@ -197,6 +202,11 @@ function PottyTimerApp() {
     // Register and schedule notifications on mount
     registerAndScheduleNotifications();
 
+    // Initialize timer if none exists
+    if (!timer && !loading) {
+      createTimer(3600); // Default 1 hour timer
+    }
+
     // AppState listener: re-schedule notification if returning to foreground
     const subscription = AppState.addEventListener('change', (nextAppState) => {
       if (
@@ -217,7 +227,7 @@ function PottyTimerApp() {
     return () => {
       subscription.remove();
     };
-  }, []);
+  }, [timer, loading, createTimer]);
 
   useEffect(() => {
     // Initial animation trigger
@@ -245,7 +255,7 @@ function PottyTimerApp() {
 
   // Cycle through background colors in notification mode
   useEffect(() => {
-    if (isNotificationMode) {
+    if (timer?.isNotificationMode) {
       // Start audio when notification mode begins
       player.loop = true;
       player.volume = 0.5;
@@ -274,17 +284,9 @@ function PottyTimerApp() {
         clearInterval(colorCycleRef.current);
       }
     };
-  }, [isNotificationMode, player]);
+  }, [timer?.isNotificationMode, player]);
 
-  // Add countdown reset logic
-  useEffect(() => {
-    if (!isNotificationMode) {
-      // Reset countdown when returning to normal mode
-      setCountdownTime(3600);
-    }
-  }, [isNotificationMode]);
-
-  // Countdown tick handler
+  // Countdown complete handler
   const handleCountdownComplete = () => {
     // Immediately trigger notification mode when countdown completes
     triggerNotificationMode();
@@ -300,16 +302,18 @@ function PottyTimerApp() {
 
   // Triggers dramatic notification mode
   function triggerNotificationMode() {
-    setIsNotificationMode(true);
-    // Strong haptic feedback for notification
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    if (timer) {
+      setNotificationMode(true);
+      // Strong haptic feedback for notification
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    }
   }
 
   // Manually trigger animation on tap with haptic feedback or dismiss notification mode
   const handleUserInteraction = async () => {
-    if (isNotificationMode) {
+    if (timer?.isNotificationMode) {
       // Dismiss notification mode
-      setIsNotificationMode(false);
+      setNotificationMode(false);
       // Success haptic feedback for dismissal
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else {
@@ -354,8 +358,12 @@ function PottyTimerApp() {
   const textFontSize = width < 360 ? 18 : width < 768 ? 24 : 32;
 
   // Handle timer duration selection
-  const selectTimerDuration = (seconds: number) => {
-    setCountdownTime(seconds);
+  const selectTimerDuration = async (seconds: number) => {
+    if (timer) {
+      await updateDuration(seconds);
+    } else {
+      await createTimer(seconds);
+    }
     setShowTimerSelector(false);
     // Haptic feedback for selection
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -386,7 +394,7 @@ function PottyTimerApp() {
 
   // Generate multiple emojis for notification mode with enhanced layout
   const renderMultipleEmojis = () => {
-    if (!isNotificationMode) return null;
+    if (!timer?.isNotificationMode) return null;
 
     const emojiCount = 12; // Increased for top and bottom rows
     const emojis = [];
@@ -414,66 +422,92 @@ function PottyTimerApp() {
       visible={showTimerSelector}
       transparent={true}
       animationType='slide'
+      presentationStyle='overFullScreen'
+      statusBarTranslucent={Platform.OS === 'android'}
       onRequestClose={() => setShowTimerSelector(false)}>
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Select Timer Duration</Text>
+      <SafeAreaView style={styles.modalOverlay}>
+        <View style={styles.modalContentWrapper}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Timer Duration</Text>
 
-          {/* Preset Options */}
-          {timerPresets.map((preset, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.presetButton,
-                countdownTime === preset.value && styles.selectedPreset,
-              ]}
-              onPress={() => selectTimerDuration(preset.value)}>
-              <Text
+            {/* Preset Options */}
+            {timerPresets.map((preset, index) => (
+              <TouchableOpacity
+                key={index}
                 style={[
-                  styles.presetText,
-                  countdownTime === preset.value && styles.selectedPresetText,
-                ]}>
-                {preset.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                  styles.presetButton,
+                  timer?.duration === preset.value && styles.selectedPreset,
+                ]}
+                onPress={() => selectTimerDuration(preset.value)}>
+                <Text
+                  style={[
+                    styles.presetText,
+                    timer?.duration === preset.value &&
+                      styles.selectedPresetText,
+                  ]}>
+                  {preset.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
 
-          {/* Custom Timer Input */}
-          <Text style={styles.customLabel}>Custom Timer (up to 99:59):</Text>
-          <View style={styles.customInputContainer}>
-            <TextInput
-              style={styles.timeInput}
-              value={customMinutes}
-              onChangeText={setCustomMinutes}
-              placeholder='MM'
-              keyboardType='numeric'
-              maxLength={2}
-            />
-            <Text style={styles.timeSeparator}>:</Text>
-            <TextInput
-              style={styles.timeInput}
-              value={customSeconds}
-              onChangeText={setCustomSeconds}
-              placeholder='SS'
-              keyboardType='numeric'
-              maxLength={2}
-            />
+            {/* Custom Timer Input */}
+            <Text style={styles.customLabel}>Custom Timer (up to 99:59):</Text>
+            <View style={styles.customInputContainer}>
+              <TextInput
+                style={styles.timeInput}
+                value={customMinutes}
+                onChangeText={setCustomMinutes}
+                placeholder='MM'
+                keyboardType='numeric'
+                maxLength={2}
+              />
+              <Text style={styles.timeSeparator}>:</Text>
+              <TextInput
+                style={styles.timeInput}
+                value={customSeconds}
+                onChangeText={setCustomSeconds}
+                placeholder='SS'
+                keyboardType='numeric'
+                maxLength={2}
+              />
+              <TouchableOpacity
+                style={styles.setButton}
+                onPress={handleCustomTimer}>
+                <Text style={styles.setButtonText}>Set</Text>
+              </TouchableOpacity>
+            </View>
+
             <TouchableOpacity
-              style={styles.setButton}
-              onPress={handleCustomTimer}>
-              <Text style={styles.setButtonText}>Set</Text>
+              style={styles.cancelButton}
+              onPress={() => setShowTimerSelector(false)}>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
           </View>
-
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={() => setShowTimerSelector(false)}>
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
         </View>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, styles.centered]}>
+        <Text style={styles.loadingText}>Loading Timer...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={[styles.container, styles.centered]}>
+        <Text style={styles.errorText}>Error: {error}</Text>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={() => createTimer(3600)}>
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <TouchableWithoutFeedback
@@ -489,24 +523,42 @@ function PottyTimerApp() {
         ]}
         testID='main-container'>
         {/* Countdown Timer with Settings Button - Only in Normal Mode */}
-        {!isNotificationMode && (
+        {!timer?.isNotificationMode && (
           <View style={styles.timerSection}>
-            <CountdownTimer
-              timeInSeconds={countdownTime}
-              isPlaying={!isNotificationMode}
-              onComplete={handleCountdownComplete}
-              style={styles.countdownWrapper}
-            />
+            {timer && (
+              <CountdownTimer
+                timeInSeconds={timer.remainingTime}
+                isPlaying={timer.isActive}
+                onComplete={handleCountdownComplete}
+                style={styles.countdownWrapper}
+              />
+            )}
             <TouchableOpacity
               style={styles.settingsButton}
               onPress={() => setShowTimerSelector(true)}>
               <Text style={styles.settingsButtonText}>⚙️ Timer Settings</Text>
             </TouchableOpacity>
+
+            {/* Timer Controls */}
+            <View style={styles.timerControls}>
+              <TouchableOpacity
+                style={[styles.controlButton, styles.startButton]}
+                onPress={timer?.isActive ? pauseTimer : startTimer}>
+                <Text style={styles.controlButtonText}>
+                  {timer?.isActive ? '⏸️ Pause' : '▶️ Start'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.controlButton, styles.resetButton]}
+                onPress={resetTimer}>
+                <Text style={styles.controlButtonText}>🔄 Reset</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
         <View style={styles.textContainer}>
-          {isNotificationMode ? (
+          {timer?.isNotificationMode ? (
             <View style={styles.notificationTextContainer}>
               {isLandscape ? (
                 // Horizontal layout for landscape mode
@@ -593,18 +645,18 @@ function PottyTimerApp() {
               )}
 
               {/* Environment indicator */}
-              {debugMode ? (
+              {debugMode && (
                 <Text
                   style={[styles.envText, { fontSize: textFontSize * 0.4 }]}>
                   {isDevelopment ? '🔧 DEV MODE' : '🚀 PROD MODE'}
                 </Text>
-              ) : null}
+              )}
             </>
           )}
         </View>
 
         {/* Show single emoji for normal mode */}
-        {showEmoji && !isNotificationMode && (
+        {showEmoji && !timer?.isNotificationMode && (
           <AnimatedEmoji
             screenWidth={width}
             screenHeight={height}
@@ -616,7 +668,7 @@ function PottyTimerApp() {
         {renderMultipleEmojis()}
 
         <Text style={[styles.instruction, { fontSize: textFontSize * 0.65 }]}>
-          {isNotificationMode
+          {timer?.isNotificationMode
             ? 'Tap anywhere to dismiss!'
             : 'Tap anywhere for a potty break animation!'}
         </Text>
@@ -628,20 +680,38 @@ function PottyTimerApp() {
   );
 }
 
-export default function App() {
-  return (
-    <SafeAreaProvider>
-      <PottyTimerApp />
-    </SafeAreaProvider>
-  );
-}
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f7f7fc',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 18,
+    color: '#666',
+    textAlign: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#ff6b6b',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
   text: {
     fontWeight: 'bold',
@@ -673,6 +743,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  timerControls: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 10,
+  },
+  controlButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  startButton: {
+    backgroundColor: '#28a745',
+  },
+  resetButton: {
+    backgroundColor: '#dc3545',
+  },
+  controlButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   textContainer: {
     alignItems: 'center',
   },
@@ -694,15 +785,28 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContentWrapper: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 20,
   },
   modalContent: {
     backgroundColor: 'white',
     borderRadius: 20,
     padding: 20,
-    width: '80%',
+    width: '100%',
     maxWidth: 350,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   modalTitle: {
     fontSize: 18,
