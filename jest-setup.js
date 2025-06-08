@@ -230,19 +230,36 @@ jest.mock('expo-audio', () => ({
 }));
 
 // Mock expo-sqlite for database functionality
+// Note: Database tests have their own specific mocks that will override this
 jest.mock('expo-sqlite', () => ({
+  openDatabaseAsync: jest.fn(() =>
+    Promise.resolve({
+      execAsync: jest.fn(() => Promise.resolve()),
+      getAllAsync: jest.fn(() => Promise.resolve([])),
+      getFirstAsync: jest.fn(() => Promise.resolve(null)),
+      runAsync: jest.fn(() =>
+        Promise.resolve({
+          lastInsertRowId: 1,
+          changes: 1,
+        }),
+      ),
+      closeAsync: jest.fn(() => Promise.resolve()),
+    }),
+  ),
   openDatabase: jest.fn(() => ({
     transaction: jest.fn((callback, errorCallback, successCallback) => {
-      // Mock successful transaction
+      // Simple mock that lets individual tests override it
       const mockTx = {
         executeSql: jest.fn((sql, params, successCallback, errorCallback) => {
-          // Mock successful SQL execution
+          // Basic mock - individual tests can override this behavior
           if (successCallback) {
             const mockResult = {
               rows: {
                 length: 0,
-                item: jest.fn(() => ({})),
+                item: jest.fn(),
               },
+              insertId: 1,
+              rowsAffected: 1,
             };
             successCallback(mockTx, mockResult);
           }
@@ -265,15 +282,6 @@ jest.mock('expo-sqlite', () => ({
     runSync: jest.fn(),
     close: jest.fn(),
   })),
-  openDatabaseAsync: jest.fn(() =>
-    Promise.resolve({
-      execAsync: jest.fn(),
-      getAllAsync: jest.fn(),
-      getFirstAsync: jest.fn(),
-      runAsync: jest.fn(),
-      closeAsync: jest.fn(),
-    }),
-  ),
 }));
 
 // Mock expo-asset to prevent ES module issues

@@ -17,6 +17,9 @@ describe('DatabaseService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
+    // Reset database service state for testing
+    database.resetForTesting();
+
     // Setup mock database and transaction
     mockExecuteSql = jest.fn();
     mockTransaction = jest.fn();

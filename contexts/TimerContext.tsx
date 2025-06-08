@@ -80,12 +80,18 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     error: null,
   });
 
-  // Initialize database on mount
+  // Initialize database and sync timer on startup
   useEffect(() => {
-    database.initialize().catch((error) => {
-      console.error('Failed to initialize database:', error);
-      dispatch({ type: 'SET_ERROR', payload: 'Failed to initialize database' });
-    });
+    const initializeAndSync = async () => {
+      try {
+        await database.initialize();
+        await syncTimer();
+      } catch (error) {
+        console.error('Failed to initialize database:', error);
+      }
+    };
+
+    initializeAndSync();
   }, []);
 
   // Calculate remaining time based on current time and start time
@@ -250,13 +256,25 @@ export function TimerProvider({ children }: { children: ReactNode }) {
         const remaining = calculateRemainingTime(timer);
         const updatedTimer = { ...timer, remainingTime: remaining };
         dispatch({ type: 'SET_TIMER', payload: updatedTimer });
+      } else {
+        // No existing timer found, create a default one
+        console.log('No existing timer found, creating default 1-hour timer');
+        await createTimer(3600); // Create a 1-hour timer by default
       }
     } catch (error) {
-      dispatch({
-        type: 'SET_ERROR',
-        payload:
-          error instanceof Error ? error.message : 'Failed to sync timer',
-      });
+      console.error('Failed to sync timer, creating default:', error);
+      // If sync fails, create a default timer to ensure the app is usable
+      try {
+        await createTimer(3600);
+      } catch (createError) {
+        dispatch({
+          type: 'SET_ERROR',
+          payload:
+            createError instanceof Error
+              ? createError.message
+              : 'Failed to initialize timer',
+        });
+      }
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }

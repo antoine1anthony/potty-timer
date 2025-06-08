@@ -1,10 +1,5 @@
 import { database } from '../../services/database';
 
-// Initialize database when module is loaded
-database.initialize().catch((error) => {
-  console.error('Failed to initialize database:', error);
-});
-
 export async function GET(request: Request): Promise<Response> {
   try {
     const timers = await database.getAllTimers();
