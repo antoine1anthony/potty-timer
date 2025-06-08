@@ -60,14 +60,20 @@ const AnimatedEmoji: React.FC<AnimatedEmojiProps> = ({
     (screenWidth < 400 ? 40 : screenWidth < 768 ? 60 : 100) *
     baseSizeMultiplier;
 
+  // Helper function to calculate emojis per row for pyramid layout
+  const getEmojisPerRow = () => Math.ceil(totalEmojis / 2);
+
+  // Helper function to determine if emoji is in top row
+  const isInTopRow = (index: number) => index < getEmojisPerRow();
+
   // Calculate position for notification mode semi-step pyramid layout
   const calculateNotificationPosition = () => {
     if (!isNotificationMode) {
       return Math.random() * (screenWidth - emojiSize);
     }
 
-    const totalInRow = Math.ceil(totalEmojis / 2); // Split into two rows
-    const isTopRow = emojiIndex < totalInRow;
+    const totalInRow = getEmojisPerRow();
+    const isTopRow = isInTopRow(emojiIndex);
     const indexInRow = isTopRow ? emojiIndex : emojiIndex - totalInRow;
     const emojisInThisRow = isTopRow ? totalInRow : totalEmojis - totalInRow;
 
@@ -98,8 +104,7 @@ const AnimatedEmoji: React.FC<AnimatedEmojiProps> = ({
 
       let targetY;
       if (isNotificationMode) {
-        const totalInRow = Math.ceil(totalEmojis / 2);
-        const isTopRow = emojiIndex < totalInRow;
+        const isTopRow = isInTopRow(emojiIndex);
         // Top row goes higher, bottom row goes to middle-upper area with more spread
         targetY = isTopRow
           ? -(screenHeight * 0.8) - extraHeight // Top row very high
@@ -140,7 +145,7 @@ const AnimatedEmoji: React.FC<AnimatedEmojiProps> = ({
     } else {
       startAnimations();
     }
-  }, [delay, isNotificationMode, emojiIndex, totalEmojis]);
+  }, [delay, isNotificationMode, emojiIndex, totalEmojis, screenHeight]);
 
   // Animated style
   const animatedStyle = useAnimatedStyle(() => ({
