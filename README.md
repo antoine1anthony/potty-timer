@@ -51,36 +51,18 @@ Potty training requires consistency and reliable reminders. Potty Timer provides
 ### 1. **Installation**
 
 ```bash
-# Clone the repository
-git clone <repository-url>
+# Clone the official repo
+git clone https://github.com/antoine1anthony/potty-timer.git
 cd potty-timer
 
-# Install dependencies
-npm install
+# Install all dependencies (using Expo CLI)
+npx expo install
 
 # Start development server
 npx expo start
 ```
 
-### 2. **Development Setup**
-
-```bash
-# Run with specific platform
-npx expo start --ios     # iOS simulator
-npx expo start --android # Android emulator
-npx expo start --web     # Web browser
-
-# Run tests
-npm test                 # Full test suite
-npm run test:watch      # Watch mode
-npm run test:coverage   # Coverage report
-```
-
-### 3. **Build for Production**
-
-```bash
-# Create development build
-npx eas build --profile development
+### 2. **Configure Your Environment**
 
 # Create production build
 npx eas build --profile production
@@ -89,9 +71,7 @@ npx eas build --profile production
 npx eas submit
 ```
 
----
-
-## 🏗️ Architecture Overview
+### 3. **Run the App**
 
 ### **File Structure**
 
@@ -132,7 +112,7 @@ potty-timer/
 - Error handling and recovery
 - Database migrations and schema management
 
-#### **API Routes** - RESTful Endpoints
+### 4. **Experience the Magic**
 
 - `/api/timers` - List and create timers
 - `/api/timers/:id` - Get, update, delete specific timer
