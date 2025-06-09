@@ -105,7 +105,7 @@ export default function CountdownTimer({
     }, 100); // Update more frequently for accuracy
 
     return () => clearInterval(interval);
-  }, [timeLeft, isPlaying, onComplete, timeInSeconds]);
+  }, [isPlaying, onComplete, timeInSeconds]);
 
   // Flip animation effect when time changes
   useEffect(() => {
