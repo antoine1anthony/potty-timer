@@ -91,7 +91,13 @@ const AnimatedEmoji: React.FC<AnimatedEmojiProps> = ({
   };
 
   // Random horizontal position for fun - use pyramid layout for notification mode
-  const left = calculateNotificationPosition();
+  const left = React.useMemo(() => calculateNotificationPosition(), [
+    isNotificationMode,
+    emojiIndex,
+    totalEmojis,
+    screenWidth,
+    emojiSize,
+  ]);
 
   const emoji = emojis[Math.floor(Math.random() * emojis.length)];
 
