@@ -2,6 +2,18 @@
 global.__DEV__ = true;
 global.alert = jest.fn();
 
+// Mock environment variables for testing
+process.env.EXPO_PUBLIC_ENV = 'development';
+
+// Mock expo/virtual/env to fix ES module issue
+jest.mock('expo/virtual/env', () => ({
+  env: process.env,
+}));
+
+// Setup jest-json-schema for API testing
+import { matchers } from 'jest-json-schema';
+expect.extend(matchers);
+
 // Following the user's request to use real libraries as much as possible
 // We'll use the minimum mocks needed to make tests work without loading native modules
 
@@ -30,6 +42,17 @@ jest.mock('react-native', () => {
         }
         return element;
       }
+      // Special handling for Modal component to respect visible prop
+      if (name === 'Modal') {
+        if (!props.visible) {
+          return null;
+        }
+        return React.createElement(
+          'div',
+          { ...props, ref, 'data-testid': name },
+          props.children,
+        );
+      }
       return React.createElement('div', { ...props, ref, 'data-testid': name });
     });
     Component.displayName = name;
@@ -40,7 +63,9 @@ jest.mock('react-native', () => {
     // Our specific overrides for testing
     AppState: {
       currentState: 'active',
-      addEventListener: jest.fn(() => ({ remove: jest.fn() })),
+      addEventListener: jest.fn((type, handler) => ({
+        remove: jest.fn(),
+      })),
     },
     useWindowDimensions: jest.fn(() => ({ width: 375, height: 667 })),
 
@@ -78,6 +103,11 @@ jest.mock('react-native', () => {
     SafeAreaView: createMockComponent('SafeAreaView'),
     FlatList: createMockComponent('FlatList'),
     ScrollView: createMockComponent('ScrollView'),
+    Modal: createMockComponent('Modal'),
+    TextInput: createMockComponent('TextInput'),
+    Alert: {
+      alert: jest.fn(),
+    },
   };
 });
 
@@ -157,9 +187,12 @@ jest.mock('expo-haptics', () => ({
   },
 }));
 
-jest.mock('expo-device', () => ({
-  isDevice: true,
-}));
+jest.mock('expo-device', () => {
+  const mockDevice = {
+    isDevice: true,
+  };
+  return mockDevice;
+});
 
 jest.mock('expo-notifications', () => ({
   setNotificationHandler: jest.fn(),
@@ -168,8 +201,96 @@ jest.mock('expo-notifications', () => ({
   ),
   scheduleNotificationAsync: jest.fn(() => Promise.resolve('notification-id')),
   cancelAllScheduledNotificationsAsync: jest.fn(() => Promise.resolve()),
+  getExpoPushTokenAsync: jest.fn(() =>
+    Promise.resolve({
+      data: 'ExponentPushToken[mock-token]',
+    }),
+  ),
   SchedulableTriggerInputTypes: {
     TIME_INTERVAL: 'timeInterval',
+  },
+}));
+
+// Mock expo-audio for audio functionality
+jest.mock('expo-audio', () => ({
+  useAudioPlayer: jest.fn(() => ({
+    play: jest.fn(),
+    pause: jest.fn(),
+    stop: jest.fn(),
+    remove: jest.fn(),
+    volume: 1.0,
+    loop: false,
+    playing: false,
+    muted: false,
+    replace: jest.fn(),
+  })),
+  Audio: {
+    setAudioModeAsync: jest.fn(() => Promise.resolve()),
+  },
+}));
+
+// Mock expo-sqlite for database functionality
+// Note: Database tests have their own specific mocks that will override this
+jest.mock('expo-sqlite', () => ({
+  openDatabaseAsync: jest.fn(() =>
+    Promise.resolve({
+      execAsync: jest.fn(() => Promise.resolve()),
+      getAllAsync: jest.fn(() => Promise.resolve([])),
+      getFirstAsync: jest.fn(() => Promise.resolve(null)),
+      runAsync: jest.fn(() =>
+        Promise.resolve({
+          lastInsertRowId: 1,
+          changes: 1,
+        }),
+      ),
+      closeAsync: jest.fn(() => Promise.resolve()),
+    }),
+  ),
+  openDatabase: jest.fn(() => ({
+    transaction: jest.fn((callback, errorCallback, successCallback) => {
+      // Simple mock that lets individual tests override it
+      const mockTx = {
+        executeSql: jest.fn((sql, params, successCallback, errorCallback) => {
+          // Basic mock - individual tests can override this behavior
+          if (successCallback) {
+            const mockResult = {
+              rows: {
+                length: 0,
+                item: jest.fn(),
+              },
+              insertId: 1,
+              rowsAffected: 1,
+            };
+            successCallback(mockTx, mockResult);
+          }
+        }),
+      };
+
+      try {
+        callback(mockTx);
+        if (successCallback) successCallback();
+      } catch (error) {
+        if (errorCallback) errorCallback(error);
+      }
+    }),
+    close: jest.fn(),
+  })),
+  openDatabaseSync: jest.fn(() => ({
+    execSync: jest.fn(),
+    getAllSync: jest.fn(),
+    getFirstSync: jest.fn(),
+    runSync: jest.fn(),
+    close: jest.fn(),
+  })),
+}));
+
+// Mock expo-asset to prevent ES module issues
+jest.mock('expo-asset', () => ({
+  Asset: {
+    fromModule: jest.fn(() => ({
+      downloadAsync: jest.fn(() => Promise.resolve()),
+      localUri: 'mock-asset-uri',
+    })),
   },
 }));
 
@@ -196,7 +317,12 @@ jest.mock('./CountdownTimer', () => {
   const React = require('react');
   const { Text } = require('react-native');
 
-  return function MockCountdownTimer({ timeInSeconds, style }) {
+  return function MockCountdownTimer({
+    timeInSeconds,
+    style,
+    onComplete,
+    isPlaying = true,
+  }) {
     const formatTime = (seconds) => {
       const mins = Math.floor(seconds / 60);
       const secs = seconds % 60;
@@ -205,6 +331,13 @@ jest.mock('./CountdownTimer', () => {
         .padStart(2, '0')}`;
     };
 
+    // Simulate countdown behavior in tests
+    React.useEffect(() => {
+      if (isPlaying && timeInSeconds <= 0 && onComplete) {
+        onComplete();
+      }
+    }, [timeInSeconds, isPlaying, onComplete]);
+
     return React.createElement(
       'Text',
       { 'data-testid': 'countdown-timer', style },
@@ -212,3 +345,50 @@ jest.mock('./CountdownTimer', () => {
     );
   };
 });
+
+// Mock our AnimatedEmoji component to avoid complex animation testing
+jest.mock('./AnimatedEmoji', () => {
+  const React = require('react');
+  const { Text } = require('react-native');
+
+  return function MockAnimatedEmoji({
+    screenWidth,
+    screenHeight,
+    delay = 0,
+    isNotificationMode = false,
+    emojiIndex = 0,
+    totalEmojis = 1,
+  }) {
+    return React.createElement(
+      'Text',
+      {
+        'data-testid': `animated-emoji-${emojiIndex}`,
+      },
+      `MockEmoji-${screenWidth}x${screenHeight}-delay${delay}${
+        isNotificationMode ? '-notification' : ''
+      }`,
+    );
+  };
+});
+
+// Mock audio files
+jest.mock(
+  './assets/audio/watermarked_Lunareh_Friday_Night_Feels_background_vocals_3_44.mp3',
+  () => 'mock-audio-file',
+);
+
+import '@testing-library/jest-dom';
+import 'jest-json-schema';
+
+// Polyfill for Response.json in test environment
+if (typeof Response !== 'undefined' && !Response.json) {
+  Response.json = function (body, init = {}) {
+    return new Response(JSON.stringify(body), {
+      ...init,
+      headers: {
+        'content-type': 'application/json',
+        ...init.headers,
+      },
+    });
+  };
+}

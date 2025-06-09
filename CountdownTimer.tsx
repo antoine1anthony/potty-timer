@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, StyleSheet, AppState } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -23,6 +23,9 @@ export default function CountdownTimer({
 }: CountdownTimerProps) {
   const [timeLeft, setTimeLeft] = useState(timeInSeconds);
   const flipAnimation = useSharedValue(0);
+  const appState = useRef(AppState.currentState);
+  const startTimeRef = useRef<number | null>(null);
+  const backgroundTimeRef = useRef<number | null>(null);
 
   // Format time as MM:SS
   const formatTime = (seconds: number): string => {
@@ -37,23 +40,72 @@ export default function CountdownTimer({
   const timeString = formatTime(timeLeft);
   const digits = timeString.split('');
 
-  // Countdown logic
+  // Reset timer when timeInSeconds prop changes
+  useEffect(() => {
+    setTimeLeft(timeInSeconds);
+    startTimeRef.current = Date.now();
+    backgroundTimeRef.current = null;
+  }, [timeInSeconds]);
+
+  // Handle app state changes for background timing
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === 'active'
+      ) {
+        // App is coming back to foreground
+        if (backgroundTimeRef.current && startTimeRef.current && isPlaying) {
+          const backgroundTime = Date.now() - backgroundTimeRef.current;
+          const totalElapsed = Date.now() - startTimeRef.current;
+          const newTimeLeft = Math.max(
+            0,
+            timeInSeconds - Math.floor(totalElapsed / 1000),
+          );
+          setTimeLeft(newTimeLeft);
+
+          if (newTimeLeft <= 0 && onComplete) {
+            onComplete();
+          }
+        }
+        backgroundTimeRef.current = null;
+      } else if (nextAppState.match(/inactive|background/)) {
+        // App is going to background
+        backgroundTimeRef.current = Date.now();
+      }
+      appState.current = nextAppState;
+    });
+
+    return () => subscription?.remove();
+  }, [timeInSeconds, isPlaying, onComplete]);
+
+  // More accurate countdown logic using time-based calculation
   useEffect(() => {
     if (!isPlaying || timeLeft <= 0) return;
 
+    // Initialize start time if not set
+    if (!startTimeRef.current) {
+      startTimeRef.current = Date.now();
+    }
+
     const interval = setInterval(() => {
-      setTimeLeft((prev) => {
-        const newTime = prev - 1;
-        if (newTime <= 0) {
-          onComplete?.();
-          return 0;
+      if (startTimeRef.current) {
+        const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+        const newTimeLeft = Math.max(0, timeInSeconds - elapsed);
+
+        setTimeLeft(newTimeLeft);
+
+        if (newTimeLeft <= 0) {
+          if (onComplete) {
+            onComplete();
+          }
+          return;
         }
-        return newTime;
-      });
-    }, 1000);
+      }
+    }, 100); // Update more frequently for accuracy
 
     return () => clearInterval(interval);
-  }, [timeLeft, isPlaying, onComplete]);
+  }, [isPlaying, onComplete, timeInSeconds]);
 
   // Flip animation effect when time changes
   useEffect(() => {

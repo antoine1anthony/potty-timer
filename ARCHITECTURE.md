@@ -2,372 +2,588 @@
 
 ## 🏗 Overview
 
-Potty Timer is a **performance-optimized**, **cross-platform** Expo app built on React Native with dramatic visual effects, haptic feedback, and intelligent notification scheduling. The architecture prioritizes **user engagement**, **accessibility**, and **battery efficiency** while delivering an impossible-to-miss potty training reminder experience.
+Potty Timer is a **production-ready**, **cross-platform** Expo Router application built with **modern React Native architecture**. It features **persistent SQLite storage**, **RESTful API routes**, **comprehensive testing**, and **engaging visual effects**. The architecture prioritizes **data persistence**, **type safety**, **testability**, and **scalable state management**.
+
+---
+
+## 🏛️ System Architecture
+
+### Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Expo Router App                          │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐     │
+│  │     UI      │    │   Context   │    │  Database   │     │
+│  │  (index.tsx)│◄──►│(TimerContext)◄──►│  (SQLite)   │     │
+│  │             │    │             │    │             │     │
+│  └─────────────┘    └─────────────┘    └─────────────┘     │
+│         │                   │                   │          │
+│         ▼                   ▼                   ▼          │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐     │
+│  │ Components  │    │ API Routes  │    │  Services   │     │
+│  │ AnimatedEmoji│    │(/api/timers)│    │(database.ts)│     │
+│  │CountdownTimer│    │             │    │             │     │
+│  └─────────────┘    └─────────────┘    └─────────────┘     │
+│                                                             │
+├─────────────────────────────────────────────────────────────┤
+│                    Platform Layer                           │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐     │
+│  │     iOS     │    │   Android   │    │     Web     │     │
+│  │ Haptics+    │    │ Haptics+    │    │ Visual Only │     │
+│  │Notifications│    │Notifications│    │             │     │
+│  └─────────────┘    └─────────────┘    └─────────────┘     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🗂️ File Structure & Routing
+
+### Expo Router File Organization
+
+```
+app/
+├── _layout.tsx                    # Root layout with providers
+├── index.tsx                      # Main timer screen
+└── api/                          # API route handlers
+    └── timers/                   # Timer API endpoints
+        ├── +api.ts              # GET/POST /api/timers
+        ├── [id]+api.ts          # CRUD for /api/timers/:id
+        ├── current+api.ts       # GET /api/timers/current
+        └── [id]/                # Nested dynamic routes
+            └── start+api.ts     # POST /api/timers/:id/start
+
+contexts/
+└── TimerContext.tsx             # Centralized state management
+
+services/
+└── database.ts                  # SQLite database service
+
+hooks/
+└── useTimerAPI.ts              # API interaction hooks
+
+components/
+├── AnimatedEmoji.tsx           # Emoji animation component
+└── CountdownTimer.tsx          # Timer display component
+
+tests/
+├── services/database.test.ts   # Database service tests (15 tests)
+├── app/api/**/*.test.ts       # API route tests (63 tests)
+└── AnimatedEmoji.test.tsx     # Component tests (8 tests)
+```
+
+### Routing System
+
+**File-based Routing with API Support:**
+
+- `app/index.tsx` → `/` (main screen)
+- `app/api/timers/+api.ts` → `/api/timers`
+- `app/api/timers/[id]+api.ts` → `/api/timers/:id`
+- `app/api/timers/current+api.ts` → `/api/timers/current`
 
 ---
 
 ## 🧩 Core Components
 
-### 1. App.tsx - Main Application Controller
+### 1. TimerContext - State Management Hub
 
-**Purpose:** Orchestrates the entire app experience, notification scheduling, and state management
-
-**Key Responsibilities:**
-
-- **Notification Management**: Registers and schedules hourly local notifications via Expo Notifications
-- **State Orchestration**: Manages normal vs. dramatic notification modes
-- **Background Handling**: Listens for AppState changes to ensure reliable operation
-- **Visual Effects**: Controls background color cycling and multiple emoji rendering
-- **Haptic Feedback**: Provides tactile feedback for all user interactions
-- **Responsive UI**: Adapts layout and sizing based on device dimensions
-
-**Key State Variables:**
-
-```typescript
-const [showEmoji, setShowEmoji] = useState(false); // Single emoji mode
-const [isNotificationMode, setIsNotificationMode] = useState(false); // Dramatic mode
-const [backgroundColor, setBackgroundColor] = useState('#f7f7fc'); // Dynamic BG
-```
-
-**Performance Optimizations:**
-
-- `useRef` for interval management to prevent memory leaks
-- Color cycling uses `setInterval` with cleanup
-- Staggered haptic feedback to avoid battery drain
-
-### 2. AnimatedEmoji.tsx - Animated Component System
-
-**Purpose:** Renders individual animated emojis with physics-based animations
+**Purpose:** Centralized timer state management with database synchronization
 
 **Key Responsibilities:**
 
-- **Random Selection**: Chooses from 10 potty-themed emojis
-- **Responsive Sizing**: Calculates emoji size based on screen dimensions
-- **Physics Animation**: Uses React Native Reanimated 3 for smooth 60fps animations
-- **Staggered Timing**: Supports delay prop for coordinated multi-emoji displays
-- **Haptic Integration**: Provides selective haptic feedback during animations
+- **State Management**: Manages all timer state with React Context
+- **Database Sync**: Automatic persistence to SQLite database
+- **Real-time Updates**: Live countdown with 1-second intervals
+- **API Integration**: Coordinates with API routes for data operations
+- **Error Handling**: Graceful error recovery and user feedback
 
-**Animation Pipeline:**
-
-1. **Initialization**: Random emoji, size, and position calculation
-2. **Entrance**: Scale bounce effect with spring physics
-3. **Movement**: Smooth upward translation to screen center
-4. **Exit**: Fade out with timing-based opacity changes
-5. **Cleanup**: Automatic cleanup after 4-second lifecycle
-
-**Technical Features:**
+**Core State:**
 
 ```typescript
-// Responsive sizing with random variation
-const baseSizeMultiplier = delay > 0 ? 0.7 + Math.random() * 0.6 : 1;
-const emojiSize =
-  (screenWidth < 400 ? 40 : screenWidth < 768 ? 60 : 100) * baseSizeMultiplier;
-
-// Physics-based animations
-scale.value = withSequence(
-  withTiming(1.2, { duration: 2000 }),
-  withSpring(1, { damping: 8, stiffness: 100 }),
-);
-```
-
----
-
-## 🎨 Visual Effects System
-
-### Dramatic Notification Mode
-
-**Trigger Conditions:**
-
-- Hourly interval timer activation
-- 5-second test trigger (development mode)
-- Manual testing capability
-
-**Visual Components:**
-
-1. **Background Color Cycling**
-
-   - 8 vibrant colors in sequence
-   - 800ms transition intervals
-   - Smooth color interpolation
-   - Haptic feedback on each change
-
-2. **Multiple Emoji Animation**
-
-   - 8 simultaneous emoji instances
-   - Random positioning across screen
-   - Staggered 200ms delay offsets
-   - Varied sizing for visual depth
-
-3. **Typography Changes**
-   - Normal: "🚽 Potty Timer is running!"
-   - Dramatic: "🚽 Time for Potty Break!! 🚽"
-   - Responsive font scaling
-
-### Color Palette
-
-```typescript
-const notificationColors = [
-  '#FF6B6B', // Coral Red
-  '#4ECDC4', // Turquoise
-  '#45B7D1', // Sky Blue
-  '#96CEB4', // Sage Green
-  '#FFEAA7', // Warm Yellow
-  '#DDA0DD', // Plum Purple
-  '#98D8C8', // Mint Green
-  '#F7DC6F', // Light Gold
-];
-```
-
----
-
-## 📳 Haptic Feedback Architecture
-
-### Feedback Hierarchy
-
-1. **Warning**: Strong feedback for notification mode activation
-2. **Light**: Gentle pulses for color changes and regular interactions
-3. **Medium**: User tap confirmations
-4. **Success**: Satisfying feedback for dismissing alerts
-5. **Selection**: Subtle feedback during emoji peak moments
-
-### Battery Optimization
-
-- Selective haptic feedback to prevent overuse
-- Only primary emoji provides peak haptic feedback
-- Optimized timing to avoid continuous vibration
-
-```typescript
-// Smart haptic feedback implementation
-if (delay === 0) {
-  // Only first emoji in group
-  setTimeout(() => {
-    Haptics.selectionAsync();
-  }, 2000);
+interface TimerContextType {
+  timer: Timer | null;
+  loading: boolean;
+  error: string | null;
+  createTimer: (duration: number) => Promise<void>;
+  startTimer: () => Promise<void>;
+  pauseTimer: () => Promise<void>;
+  resetTimer: () => Promise<void>;
+  updateDuration: (duration: number) => Promise<void>;
+  setNotificationMode: (isActive: boolean) => void;
 }
 ```
 
----
+**Performance Features:**
 
-## ⏰ Timing & Scheduling System
+- Optimistic updates for immediate UI feedback
+- Background timer persistence with AppState monitoring
+- Automatic cleanup and memory management
+- Debounced API calls to prevent excessive requests
 
-### Multi-Timer Architecture
+### 2. Database Service - SQLite Integration
+
+**Purpose:** Persistent data storage with transaction support
+
+**Schema Design:**
+
+```sql
+CREATE TABLE IF NOT EXISTS timers (
+  id TEXT PRIMARY KEY,
+  duration INTEGER NOT NULL,
+  remainingTime INTEGER NOT NULL,
+  startTime INTEGER,
+  isActive INTEGER DEFAULT 0,
+  isNotificationMode INTEGER DEFAULT 0,
+  createdAt INTEGER DEFAULT (strftime('%s', 'now')),
+  updatedAt INTEGER DEFAULT (strftime('%s', 'now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_timers_active
+ON timers(isActive) WHERE isActive = 1;
+```
+
+**Key Features:**
+
+- **Transaction Support**: ACID compliance for data integrity
+- **Error Recovery**: Automatic retry logic with exponential backoff
+- **Query Optimization**: Indexed queries for performance
+- **Migration Support**: Schema versioning and upgrades
+- **Concurrent Access**: Safe multi-threaded database operations
+
+**API Surface:**
 
 ```typescript
-// Hourly recurring notifications
-const interval = setInterval(() => {
-  triggerNotificationMode();
-}, 60 * 60 * 1000);
-
-// One-time test trigger
-const testTimeout = setTimeout(() => {
-  triggerNotificationMode();
-}, 5000);
+class DatabaseService {
+  async initialize(): Promise<void>;
+  async createTimer(timer: CreateTimerRequest): Promise<Timer>;
+  async getTimer(id: string): Promise<Timer | null>;
+  async getCurrentTimer(): Promise<Timer | null>;
+  async updateTimer(id: string, updates: UpdateTimerRequest): Promise<Timer>;
+  async deleteTimer(id: string): Promise<void>;
+  async getAllTimers(): Promise<Timer[]>;
+  async clearAllTimers(): Promise<void>;
+}
 ```
 
-### Background Persistence
+### 3. API Routes - RESTful Endpoints
 
-- AppState monitoring for foreground/background transitions
-- Automatic notification rescheduling on app resume
-- Reliable JavaScript timer management with cleanup
+**Purpose:** HTTP API layer for timer operations
 
-### Platform-Specific Handling
+**Endpoint Architecture:**
 
-- **iOS**: Full notification support with proper badge handling
-- **Android**: Custom notification channels with priority settings
-- **Web**: Visual effects only (browser notification limitations)
-
----
-
-## 🎯 User Experience Flow Architecture
-
-### State Transition Diagram
-
-```
-[App Launch] → [Normal Mode] → [5s Test] → [Dramatic Mode]
-     ↓              ↓              ↓            ↓
-[Permissions] → [Tap Animation] → [Color Cycle] → [User Tap]
-     ↓              ↑              ↓            ↓
-[Notification] → [Single Emoji] → [8 Emojis] → [Normal Mode]
-     ↓
-[Hourly Loop]
-```
-
-### Interaction Patterns
-
-1. **Normal Mode Interactions**
-
-   - Tap triggers single emoji animation
-   - Medium haptic feedback confirmation
-   - 4-second animation lifecycle
-
-2. **Dramatic Mode Interactions**
-   - Color cycling with light haptic pulses
-   - Multiple emoji animations with staggered timing
-   - Tap anywhere dismisses with success haptic feedback
-
----
-
-## 📱 Responsive Design System
-
-### Breakpoint Strategy
+#### `/api/timers` (timers/+api.ts)
 
 ```typescript
-// Device categorization
-const textFontSize = width < 360 ? 18 : width < 768 ? 24 : 32;
-const emojiSize = screenWidth < 400 ? 40 : screenWidth < 768 ? 60 : 100;
-const padding = width < 500 ? 16 : 32;
+// GET - List all timers
+export async function GET(request: Request): Promise<Response>;
+
+// POST - Create new timer
+export async function POST(request: Request): Promise<Response>;
 ```
 
-### Platform Adaptations
+#### `/api/timers/:id` (timers/[id]+api.ts)
 
-- **Mobile**: Optimized touch targets, conservative spacing
-- **Tablet**: Larger fonts, increased emoji sizes, generous padding
-- **Web**: Full feature support with keyboard interactions
+```typescript
+// GET - Get specific timer
+export async function GET(
+  request: Request,
+  { id }: { id: string },
+): Promise<Response>;
+
+// PUT - Update timer
+export async function PUT(
+  request: Request,
+  { id }: { id: string },
+): Promise<Response>;
+
+// DELETE - Delete timer
+export async function DELETE(
+  request: Request,
+  { id }: { id: string },
+): Promise<Response>;
+```
+
+#### `/api/timers/current` (timers/current+api.ts)
+
+```typescript
+// GET - Get currently active timer
+export async function GET(request: Request): Promise<Response>;
+```
+
+**Request/Response Types:**
+
+```typescript
+interface CreateTimerRequest {
+  duration: number; // seconds
+}
+
+interface UpdateTimerRequest {
+  duration?: number;
+  remainingTime?: number;
+  isActive?: boolean;
+  isNotificationMode?: boolean;
+}
+
+interface TimerResponse {
+  success: boolean;
+  timer?: Timer;
+  timers?: Timer[];
+  count?: number;
+  message?: string;
+  error?: string;
+}
+```
+
+### 4. Animation System - Visual Effects
+
+**Purpose:** Engaging emoji animations with physics-based motion
+
+**AnimatedEmoji Component:**
+
+```typescript
+interface AnimatedEmojiProps {
+  screenWidth: number;
+  screenHeight: number;
+  delay?: number;
+  isNotificationMode?: boolean;
+  emojiIndex?: number;
+  totalEmojis?: number;
+}
+```
+
+**Animation Pipeline:**
+
+1. **Initialization**: Random emoji selection and positioning
+2. **Physics Animation**: Reanimated 3 with spring physics
+3. **Staggered Timing**: Coordinated multi-emoji displays
+4. **Responsive Sizing**: Device-appropriate scaling
+5. **Haptic Integration**: Tactile feedback at key moments
+
+**Performance Optimizations:**
+
+- Hardware-accelerated animations with Reanimated 3
+- Efficient memory cleanup after animation lifecycle
+- Staggered rendering to prevent frame drops
+- Responsive sizing calculations for all device types
 
 ---
 
-## 🔧 Performance Optimizations
+## 📊 Data Flow Architecture
 
-### Animation Performance
+### State Flow Diagram
 
-- **React Native Reanimated 3**: Hardware-accelerated animations
+```
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│     UI      │───►│   Context   │───►│  Database   │
+│  Actions    │    │    State    │    │   Storage   │
+└─────────────┘    └─────────────┘    └─────────────┘
+       ▲                   │                   │
+       │                   ▼                   ▼
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│  Component  │◄───│ API Routes  │◄───│  Services   │
+│   Updates   │    │  Handlers   │    │   Layer     │
+└─────────────┘    └─────────────┘    └─────────────┘
+```
+
+### Timer Lifecycle
+
+1. **Creation**: User selects duration → Context calls API → Database creates record
+2. **Start**: User starts timer → Context updates state → Database persists → Real-time countdown begins
+3. **Tick**: Interval updates remaining time → Context state updated → UI re-renders
+4. **Completion**: Timer reaches zero → Notification triggered → Dramatic mode activated
+5. **Dismissal**: User interaction → Normal mode restored → Database updated
+
+---
+
+## 🧪 Testing Architecture
+
+### Test Pyramid Structure
+
+```
+                    ┌─────────────┐
+                    │    E2E      │ (Future)
+                    │   Tests     │
+                    └─────────────┘
+                ┌───────────────────────┐
+                │   Integration Tests   │ (Future)
+                │  Component + API +    │
+                │     Database          │
+                └───────────────────────┘
+            ┌─────────────────────────────────┐
+            │           Unit Tests            │
+            │  Database(15) + API(63) +      │
+            │      Components(8)             │
+            └─────────────────────────────────┘
+```
+
+### Test Categories
+
+#### **Database Tests (15 tests)**
+
+- CRUD operations validation
+- Transaction integrity testing
+- Error handling scenarios
+- Connection management
+- Query optimization verification
+
+#### **API Route Tests (63 tests)**
+
+- HTTP method handling (GET, POST, PUT, DELETE)
+- Request validation and sanitization
+- Response format consistency
+- Error response handling
+- Database integration testing
+
+#### **Component Tests (8 tests)**
+
+- Rendering validation
+- Responsive design testing
+- Animation behavior verification
+- Props and state management
+- User interaction handling
+
+### Test Configuration
+
+**Multi-Environment Setup:**
+
+```javascript
+// jest.config.js
+module.exports = {
+  projects: [
+    {
+      displayName: 'React Components',
+      testEnvironment: 'jsdom',
+      testMatch: [
+        '<rootDir>/**/*.test.{ts,tsx}',
+        '!<rootDir>/app/api/**/*.test.{ts,tsx}',
+      ],
+    },
+    {
+      displayName: 'API Routes',
+      testEnvironment: 'node',
+      testMatch: ['<rootDir>/app/api/**/*.test.{ts,tsx}'],
+    },
+  ],
+};
+```
+
+---
+
+## ⚡ Performance Architecture
+
+### Optimization Strategies
+
+#### **Database Performance**
+
+- **Indexed Queries**: Optimized search patterns for active timers
+- **Transaction Batching**: Grouped operations for efficiency
+- **Connection Pooling**: Managed database connections
+- **Query Caching**: Memoized frequent queries
+
+#### **State Management Performance**
+
+- **Selective Re-renders**: Context value optimization
+- **Memoization**: Expensive calculation caching
+- **Optimistic Updates**: Immediate UI feedback
+- **Background Sync**: Non-blocking database operations
+
+#### **Animation Performance**
+
+- **Hardware Acceleration**: Reanimated 3 native bridge
+- **60fps Target**: Smooth animation guarantee
+- **Memory Management**: Automatic cleanup after lifecycle
 - **Staggered Rendering**: Prevents simultaneous expensive operations
-- **Efficient Cleanup**: Automatic disposal of animation resources
 
 ### Memory Management
 
 ```typescript
-// Proper cleanup patterns
-return () => {
-  clearInterval(interval);
-  clearTimeout(testTimeout);
-  if (colorCycleRef.current) {
-    clearInterval(colorCycleRef.current);
-  }
+// Cleanup patterns
+useEffect(() => {
+  const interval = setInterval(updateTimer, 1000);
+  return () => {
+    clearInterval(interval);
+    // Cleanup animations, listeners, database connections
+  };
+}, []);
+```
+
+---
+
+## 🌐 Platform Adaptations
+
+### Cross-Platform Feature Matrix
+
+| Feature                   | iOS     | Android | Web                 |
+| ------------------------- | ------- | ------- | ------------------- |
+| **Timer Management**      | ✅ Full | ✅ Full | ✅ Full             |
+| **SQLite Database**       | ✅ Full | ✅ Full | ✅ Full (IndexedDB) |
+| **API Routes**            | ✅ Full | ✅ Full | ✅ Full             |
+| **Haptic Feedback**       | ✅ Full | ✅ Full | ❌ Not Available    |
+| **Local Notifications**   | ✅ Full | ✅ Full | ⚠️ Limited          |
+| **Background Processing** | ✅ Full | ✅ Full | ⚠️ Limited          |
+
+### Platform-Specific Implementations
+
+#### **iOS Optimizations**
+
+- Native haptic feedback integration
+- Background app refresh support
+- App Store Connect integration
+- TestFlight distribution
+
+#### **Android Optimizations**
+
+- Adaptive icon support
+- Edge-to-edge display
+- Android notification channels
+- Google Play Console integration
+
+#### **Web Adaptations**
+
+- IndexedDB for data persistence
+- Service Worker for background sync
+- Progressive Web App features
+- Responsive design breakpoints
+
+---
+
+## 🔮 Extensibility & Scalability
+
+### Plugin Architecture
+
+The system is designed for easy extension:
+
+```typescript
+// Plugin interface example
+interface TimerPlugin {
+  name: string;
+  version: string;
+  initialize(context: TimerContext): Promise<void>;
+  onTimerCreate?(timer: Timer): Promise<void>;
+  onTimerComplete?(timer: Timer): Promise<void>;
+}
+```
+
+### Future Architecture Enhancements
+
+#### **Planned Features**
+
+- **Multi-tenant Support**: Multiple user profiles
+- **Cloud Synchronization**: Cross-device timer sync
+- **Plugin System**: Extensible functionality
+- **Analytics Integration**: Usage pattern tracking
+- **Advanced Notifications**: Rich push notifications
+
+#### **Scalability Considerations**
+
+- **Database Sharding**: For multiple users
+- **API Rate Limiting**: Request throttling
+- **Caching Layers**: Redis/MemoryStore integration
+- **Microservices**: Service decomposition
+- **Event Sourcing**: Audit trail and history
+
+---
+
+## 📈 Monitoring & Observability
+
+### Performance Metrics
+
+#### **Key Performance Indicators**
+
+- **Database Query Time**: <100ms for CRUD operations
+- **API Response Time**: <200ms for all endpoints
+- **Animation Frame Rate**: 60fps sustained
+- **Memory Usage**: <100MB during peak usage
+- **Battery Impact**: <5% per hour active use
+
+#### **Error Tracking**
+
+- Database connection failures
+- API request failures
+- Animation performance drops
+- Memory leaks detection
+- Crash reporting integration
+
+### Logging Strategy
+
+```typescript
+// Structured logging
+const logger = {
+  database: (operation: string, time: number) =>
+    console.log(`🗄️ Database ${operation} completed in ${time}ms`),
+  api: (endpoint: string, status: number, time: number) =>
+    console.log(`🌐 API ${endpoint} responded ${status} in ${time}ms`),
+  timer: (event: string, timerId: string) =>
+    console.log(`⏰ Timer ${event} for ${timerId}`),
 };
 ```
 
-### Battery Considerations
+---
 
-- Local JavaScript timers (no background processing)
-- Optimized haptic feedback frequency
-- Efficient color cycling with minimal re-renders
+## 🛡️ Security & Data Privacy
+
+### Data Protection
+
+- **Local-First Architecture**: Sensitive data stays on device
+- **No Cloud Storage**: Complete offline functionality
+- **Encrypted Storage**: SQLite database encryption (configurable)
+- **Permission Management**: Minimal permission requests
+
+### Security Best Practices
+
+- **Input Validation**: All API endpoints validate inputs
+- **SQL Injection Prevention**: Parameterized queries only
+- **XSS Protection**: Sanitized user inputs
+- **Memory Safety**: Automatic cleanup and garbage collection
 
 ---
 
-## 🧪 Testing & Development
+## 🔧 Development & Build Architecture
 
-### Development Features
-
-- 5-second test trigger for immediate feedback
-- Web support for rapid iteration
-- Hot reload compatibility for all features
-
-### Testing Strategy
-
-- **Visual Testing**: Web browser for animation testing
-- **Haptic Testing**: Physical device required
-- **Notification Testing**: Development builds for full functionality
-
----
-
-## 📦 Dependencies & SDK
-
-### Core Dependencies
+### Development Tools
 
 ```json
 {
   "expo": "~53.0.9",
-  "react-native-reanimated": "~3.17.4",
-  "expo-notifications": "~0.31.2",
-  "expo-haptics": "~14.1.4",
-  "react-native-safe-area-context": "5.4.0"
+  "typescript": "~5.8.3",
+  "jest": "^29.7.0",
+  "expo-router": "~5.0.7",
+  "expo-sqlite": "~15.2.10",
+  "react-native-reanimated": "~3.17.4"
 }
 ```
 
-### Architecture Benefits
+### Build Pipeline
 
-- **Expo SDK 53**: Latest features and performance improvements
-- **Reanimated 3**: Smooth 60fps animations on all platforms
-- **Modern React Patterns**: Hooks-based architecture for maintainability
+#### **EAS Build Configuration**
 
----
-
-## 🔮 Extensibility & Future Features
-
-### Planned Enhancements
-
-- Custom notification intervals (15min, 30min, 2hr options)
-- Theme customization with user preferences
-- Analytics integration for usage patterns
-- Multi-child support with different schedules
-
-### Architecture Supports
-
-- Plugin-based emoji packs
-- Custom color themes
-- Advanced haptic patterns
-- Remote configuration capabilities
-
----
-
-## 📊 Performance Metrics
-
-### Target Performance
-
-- **Animation FPS**: 60fps on all supported devices
-- **Memory Usage**: <50MB baseline, <100MB during dramatic mode
-- **Battery Impact**: <2% per hour during active use
-- **Cold Start Time**: <2 seconds to first interaction
-
-### Monitoring Points
-
-- Animation frame drops during color cycling
-- Memory spikes during multiple emoji rendering
-- Haptic feedback battery impact
-- Notification delivery reliability
-
----
-
-## 🏗 Technical Architecture Diagram
-
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   App.tsx       │    │  AnimatedEmoji   │    │ Expo Platforms │
-│                 │    │                  │    │                 │
-│ ┌─────────────┐ │    │ ┌──────────────┐ │    │ ┌─────────────┐ │
-│ │State Mgmt   │ │◄──►│ │ Reanimated 3 │ │    │ │Notifications│ │
-│ └─────────────┘ │    │ └──────────────┘ │    │ └─────────────┘ │
-│                 │    │                  │    │                 │
-│ ┌─────────────┐ │    │ ┌──────────────┐ │    │ ┌─────────────┐ │
-│ │Timer System │ │    │ │ Physics Anim │ │    │ │   Haptics   │ │
-│ └─────────────┘ │    │ └──────────────┘ │    │ └─────────────┘ │
-│                 │    │                  │    │                 │
-│ ┌─────────────┐ │    │ ┌──────────────┐ │    │ ┌─────────────┐ │
-│ │Color Cycling│ │    │ │ Emoji Assets │ │    │ │Device APIs  │ │
-│ └─────────────┘ │    │ └──────────────┘ │    │ └─────────────┘ │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-         │                       │                       │
-         └───────────────────────┼───────────────────────┘
-                                 │
-                    ┌──────────────────┐
-                    │   User Device    │
-                    │                  │
-                    │ ┌──────────────┐ │
-                    │ │   Display    │ │
-                    │ └──────────────┘ │
-                    │ ┌──────────────┐ │
-                    │ │Haptic Engine │ │
-                    │ └──────────────┘ │
-                    │ ┌──────────────┐ │
-                    │ │ Notification │ │
-                    │ │   Center     │ │
-                    │ └──────────────┘ │
-                    └──────────────────┘
+```json
+// eas.json
+{
+  "build": {
+    "development": {
+      "env": { "EXPO_PUBLIC_ENV": "development" },
+      "developmentClient": true
+    },
+    "production": {
+      "env": { "EXPO_PUBLIC_ENV": "production" }
+    }
+  }
+}
 ```
 
+#### **CI/CD Integration**
+
+- Automated testing on push
+- Build verification
+- Test coverage reporting
+- Deployment automation
+
 ---
 
-**Built with ❤️ for reliable, engaging potty training reminders**
+**Built with 💎 for production-grade timer management**
 
-_Architecture designed for performance, accessibility, and pure joy_ 🚽✨
+_Modern architecture designed for scalability, reliability, and developer joy_ 🚽✨

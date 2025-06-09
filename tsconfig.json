@@ -12,9 +12,21 @@
     "noEmit": true,
     "isolatedModules": true,
     "skipLibCheck": true,
-    "lib": ["es2019"],
-    "types": ["jest", "@testing-library/jest-native"]
+    "lib": [
+      "es2019"
+    ],
+    "types": [
+      "jest",
+      "@testing-library/jest-native"
+    ]
   },
-  "include": ["**/*.ts", "**/*.tsx", "**/*.d.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.d.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ],
+  "extends": "expo/tsconfig.base"
 }
